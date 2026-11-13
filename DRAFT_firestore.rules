@@ -1,0 +1,422 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && isVerified() && (
+        request.auth.token.email == 'infophakweb@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Entity Validation Blueprints (Pillar 2: Anti-Update-Gap)
+    function isValidAdminStaff(data) {
+      return isSignedIn() &&
+        data.keys().hasAll([
+          'ownerId', 'fullName', 'email', 'role',
+          'permissionsSummary', 'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'fullName', 'email', 'role',
+          'permissionsSummary', 'status', 'username', 'password',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+        data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+        data.role is string && data.role.size() <= 40 &&
+        data.role in ['Super Admin', 'Inventory Manager', 'Payout Controller', 'Network Director'] &&
+        data.permissionsSummary is string && data.permissionsSummary.size() >= 1 && data.permissionsSummary.size() <= 200 &&
+        data.status is string && data.status.size() <= 32 && data.status in ['active', 'suspended'] &&
+        (!('username' in data) || (data.username is string && data.username.size() <= 40)) &&
+        (!('password' in data) || (data.password is string && data.password.size() <= 64)) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidProduct(data) {
+      return isSignedIn() &&
+        data.keys().hasAll([
+          'ownerId', 'sku', 'name', 'category', 'description',
+          'retailPrice', 'memberPrice', 'pv', 'stock', 'reorderLevel',
+          'imageUrl', 'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'sku', 'name', 'category', 'description',
+          'retailPrice', 'memberPrice', 'pv', 'stock', 'reorderLevel',
+          'imageUrl', 'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+        data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.sku is string && data.sku.size() >= 1 && data.sku.size() <= 64 &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+        data.category is string && data.category.size() >= 1 && data.category.size() <= 60 &&
+        data.description is string && data.description.size() >= 1 && data.description.size() <= 600 &&
+        data.retailPrice is number && data.retailPrice >= 0 && data.retailPrice <= 1000000000 &&
+        data.memberPrice is number && data.memberPrice >= 0 && data.memberPrice <= 1000000000 &&
+        data.pv is number && data.pv >= 0 && data.pv <= 1000000000 &&
+        data.stock is number && data.stock >= 0 && data.stock <= 1000000 &&
+        data.reorderLevel is number && data.reorderLevel >= 0 && data.reorderLevel <= 100000 &&
+        data.imageUrl is string && data.imageUrl.size() >= 1 && data.imageUrl.size() <= 350000 &&
+        data.status is string && data.status.size() <= 32 && data.status in ['active', 'low_stock', 'archived'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidDistributor(data) {
+      return isSignedIn() &&
+        data.keys().hasAll([
+          'ownerId', 'code', 'fullName', 'rank', 'sponsorId',
+          'levelDepth', 'personalSalesVolume', 'groupSalesVolume',
+          'totalCommissionEarned', 'pendingPayout', 'paidOutTotal',
+          'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'code', 'fullName', 'rank', 'sponsorId',
+          'levelDepth', 'personalSalesVolume', 'groupSalesVolume',
+          'totalCommissionEarned', 'pendingPayout', 'paidOutTotal',
+          'status', 'email', 'phone', 'nationalId', 'bankName', 'bankAccount',
+          'bankAccountName', 'bankQrData', 'kycDocType', 'kycDocName',
+          'kycStatus', 'activePackage', 'username', 'password',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+        data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.code is string && data.code.size() >= 2 && data.code.size() <= 32 &&
+        data.code.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 100 &&
+        data.rank is string && data.rank.size() <= 40 &&
+        data.rank in ['Brand Partner', 'Silver Director', 'Gold Director', 'Emerald Executive', 'Diamond Ambassador'] &&
+        data.sponsorId is string && data.sponsorId.size() >= 1 && data.sponsorId.size() <= 128 &&
+        data.sponsorId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.levelDepth is number && data.levelDepth >= 0 && data.levelDepth <= 10 &&
+        data.personalSalesVolume is number && data.personalSalesVolume >= 0 && data.personalSalesVolume <= 10000000000 &&
+        data.groupSalesVolume is number && data.groupSalesVolume >= 0 && data.groupSalesVolume <= 10000000000 &&
+        data.totalCommissionEarned is number && data.totalCommissionEarned >= 0 && data.totalCommissionEarned <= 10000000000 &&
+        data.pendingPayout is number && data.pendingPayout >= 0 && data.pendingPayout <= 10000000000 &&
+        data.paidOutTotal is number && data.paidOutTotal >= 0 && data.paidOutTotal <= 10000000000 &&
+        data.status is string && data.status.size() <= 32 && data.status in ['active', 'suspended'] &&
+        (!('email' in data) || (data.email is string && data.email.size() <= 120)) &&
+        (!('phone' in data) || (data.phone is string && data.phone.size() <= 40)) &&
+        (!('nationalId' in data) || (data.nationalId is string && data.nationalId.size() <= 60)) &&
+        (!('bankName' in data) || (data.bankName is string && data.bankName.size() <= 80)) &&
+        (!('bankAccount' in data) || (data.bankAccount is string && data.bankAccount.size() <= 60)) &&
+        (!('bankAccountName' in data) || (data.bankAccountName is string && data.bankAccountName.size() <= 100)) &&
+        (!('bankQrData' in data) || (data.bankQrData is string && data.bankQrData.size() <= 2000)) &&
+        (!('kycDocType' in data) || (data.kycDocType is string && data.kycDocType.size() <= 40)) &&
+        (!('kycDocName' in data) || (data.kycDocName is string && data.kycDocName.size() <= 200)) &&
+        (!('kycStatus' in data) || (data.kycStatus is string && data.kycStatus.size() <= 32 && data.kycStatus in ['unverified', 'pending', 'verified'])) &&
+        (!('activePackage' in data) || (data.activePackage is string && data.activePackage.size() <= 40 && data.activePackage in ['None', 'Bronze Starter', 'Silver Builder', 'Gold Pro', 'Diamond Founder'])) &&
+        (!('username' in data) || (data.username is string && data.username.size() <= 40)) &&
+        (!('password' in data) || (data.password is string && data.password.size() <= 64)) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidOrder(data) {
+      return isSignedIn() &&
+        data.keys().hasAll([
+          'ownerId', 'orderNumber', 'customerName', 'orderType',
+          'referringDistributorId', 'referringDistributorName',
+          'productId', 'productName', 'quantity', 'unitPrice',
+          'totalAmount', 'totalPv', 'totalCommissionGenerated',
+          'status', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'orderNumber', 'customerName', 'orderType',
+          'referringDistributorId', 'referringDistributorName',
+          'productId', 'productName', 'quantity', 'unitPrice',
+          'totalAmount', 'totalPv', 'totalCommissionGenerated',
+          'status', 'paymentMethod', 'paymentRef',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+        data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.orderNumber is string && data.orderNumber.size() >= 1 && data.orderNumber.size() <= 40 &&
+        data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 100 &&
+        data.orderType is string && data.orderType.size() <= 20 && data.orderType in ['retail', 'member'] &&
+        data.referringDistributorId is string && data.referringDistributorId.size() >= 1 && data.referringDistributorId.size() <= 128 &&
+        data.referringDistributorId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.referringDistributorName is string && data.referringDistributorName.size() >= 1 && data.referringDistributorName.size() <= 100 &&
+        data.productId is string && data.productId.size() >= 1 && data.productId.size() <= 128 &&
+        data.productId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.productName is string && data.productName.size() >= 1 && data.productName.size() <= 120 &&
+        data.quantity is number && data.quantity >= 1 && data.quantity <= 10000 &&
+        data.unitPrice is number && data.unitPrice >= 0 && data.unitPrice <= 1000000000 &&
+        data.totalAmount is number && data.totalAmount >= 0 && data.totalAmount <= 10000000000 &&
+        data.totalPv is number && data.totalPv >= 0 && data.totalPv <= 10000000000 &&
+        data.totalCommissionGenerated is number && data.totalCommissionGenerated >= 0 && data.totalCommissionGenerated <= 10000000000 &&
+        data.status is string && data.status.size() <= 32 && data.status in ['processing', 'fulfilled', 'cancelled'] &&
+        (!('paymentMethod' in data) || (data.paymentMethod is string && data.paymentMethod.size() <= 40)) &&
+        (!('paymentRef' in data) || (data.paymentRef is string && data.paymentRef.size() <= 100)) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidCommission(data) {
+      return isSignedIn() &&
+        data.keys().hasAll([
+          'ownerId', 'orderId', 'orderNumber', 'beneficiaryId',
+          'beneficiaryName', 'sourceDistributorId', 'sourceDistributorName',
+          'unilevelTier', 'percentageRate', 'basePv', 'commissionAmount',
+          'payoutStatus', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'orderId', 'orderNumber', 'beneficiaryId',
+          'beneficiaryName', 'sourceDistributorId', 'sourceDistributorName',
+          'unilevelTier', 'percentageRate', 'basePv', 'commissionAmount',
+          'payoutStatus', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+        data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.orderId is string && data.orderId.size() >= 1 && data.orderId.size() <= 128 &&
+        data.orderId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.orderNumber is string && data.orderNumber.size() >= 1 && data.orderNumber.size() <= 40 &&
+        data.beneficiaryId is string && data.beneficiaryId.size() >= 1 && data.beneficiaryId.size() <= 128 &&
+        data.beneficiaryId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.beneficiaryName is string && data.beneficiaryName.size() >= 1 && data.beneficiaryName.size() <= 100 &&
+        data.sourceDistributorId is string && data.sourceDistributorId.size() >= 1 && data.sourceDistributorId.size() <= 128 &&
+        data.sourceDistributorId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.sourceDistributorName is string && data.sourceDistributorName.size() >= 1 && data.sourceDistributorName.size() <= 100 &&
+        data.unilevelTier is number && data.unilevelTier >= 1 && data.unilevelTier <= 4 &&
+        data.percentageRate is number && data.percentageRate >= 0 && data.percentageRate <= 100 &&
+        data.basePv is number && data.basePv >= 0 && data.basePv <= 10000000000 &&
+        data.commissionAmount is number && data.commissionAmount >= 0 && data.commissionAmount <= 10000000000 &&
+        data.payoutStatus is string && data.payoutStatus.size() <= 32 && data.payoutStatus in ['pending', 'paid', 'voided'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidSettings(data) {
+      return isSignedIn() &&
+        data.keys().hasAll([
+          'ownerId', 'brandName', 'brandTagline', 'currencySymbol',
+          'level1Rate', 'level2Rate', 'level3Rate', 'level4Rate',
+          'minActivePv', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId', 'brandName', 'brandTagline', 'currencySymbol',
+          'level1Rate', 'level2Rate', 'level3Rate', 'level4Rate',
+          'minActivePv', 'createdAt', 'updatedAt'
+        ]) &&
+        data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+        data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.ownerId == request.auth.uid &&
+        data.brandName is string && data.brandName.size() >= 1 && data.brandName.size() <= 80 &&
+        data.brandTagline is string && data.brandTagline.size() >= 1 && data.brandTagline.size() <= 160 &&
+        data.currencySymbol is string && data.currencySymbol.size() >= 1 && data.currencySymbol.size() <= 16 &&
+        data.level1Rate is number && data.level1Rate >= 0 && data.level1Rate <= 50 &&
+        data.level2Rate is number && data.level2Rate >= 0 && data.level2Rate <= 50 &&
+        data.level3Rate is number && data.level3Rate >= 0 && data.level3Rate <= 50 &&
+        data.level4Rate is number && data.level4Rate >= 0 && data.level4Rate <= 50 &&
+        data.minActivePv is number && data.minActivePv >= 0 && data.minActivePv <= 1000000000 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // 0. Backend Administrators Collection (PII isolated to ownerId or isAdmin)
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && (existing().ownerId == request.auth.uid || request.auth.uid == adminId || isAdmin());
+      allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isVerified() && isValidId(adminId) &&
+        isValidAdminStaff(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidAdminStaff(incoming()) && isSignedIn() && isVerified() && isValidId(adminId) &&
+        existing().ownerId == request.auth.uid &&
+        incoming().ownerId == existing().ownerId &&
+        (incoming().createdAt == existing().createdAt || incoming().createdAt == request.time) &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'fullName', 'email', 'role', 'permissionsSummary',
+            'status', 'username', 'password', 'updatedAt'
+          ])
+        );
+      allow delete: if isSignedIn() && isVerified() && isValidId(adminId) &&
+        (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // Connection health check endpoint
+    match /test/{docId} {
+      allow get: if isValidId(docId);
+      allow list, create, update, delete: if false;
+    }
+
+    // 1. Products Collection
+    match /products/{productId} {
+      allow get: if isSignedIn() && isValidId(productId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isVerified() && isValidId(productId) &&
+        isValidProduct(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidProduct(incoming()) && isSignedIn() && isVerified() && isValidId(productId) &&
+        existing().ownerId == request.auth.uid &&
+        incoming().ownerId == existing().ownerId &&
+        (incoming().createdAt == existing().createdAt || incoming().createdAt == request.time) &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          // Action: Restock or deduct inventory on sale
+          incoming().diff(existing()).affectedKeys().hasOnly(['stock', 'status', 'updatedAt']) ||
+          // Action: Edit product details and pricing
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'sku', 'name', 'category', 'description', 'retailPrice',
+            'memberPrice', 'pv', 'stock', 'reorderLevel', 'imageUrl', 'status', 'updatedAt'
+          ])
+        );
+      allow delete: if isSignedIn() && isVerified() && isValidId(productId) &&
+        (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // 2. Distributors Collection (4-Level Unilevel Genealogy)
+    match /distributors/{distributorId} {
+      allow get: if isSignedIn() && isValidId(distributorId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isVerified() && isValidId(distributorId) &&
+        isValidDistributor(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time && (
+          incoming().sponsorId == 'ROOT' || (
+            existsAfter(/databases/$(database)/documents/distributors/$(incoming().sponsorId)) &&
+            getAfter(/databases/$(database)/documents/distributors/$(incoming().sponsorId)).data.ownerId == request.auth.uid
+          )
+        );
+      allow update: if isValidDistributor(incoming()) && isSignedIn() && isVerified() && isValidId(distributorId) &&
+        existing().ownerId == request.auth.uid &&
+        incoming().ownerId == existing().ownerId &&
+        (incoming().createdAt == existing().createdAt || incoming().createdAt == request.time) &&
+        incoming().sponsorId == existing().sponsorId &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          // Action: Rollup sales volume, active package, and commissions from order, withdrawal, or payout disbursement
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'personalSalesVolume', 'groupSalesVolume', 'totalCommissionEarned',
+            'pendingPayout', 'paidOutTotal', 'rank', 'activePackage', 'updatedAt'
+          ]) ||
+          // Action: Update partner profile, email/phone, KYC document, Bank & QR, username/password credentials, active package, rank override, or status
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'fullName', 'code', 'rank', 'status', 'email', 'phone', 'nationalId',
+            'bankName', 'bankAccount', 'bankAccountName', 'bankQrData',
+            'kycDocType', 'kycDocName', 'kycStatus', 'activePackage',
+            'username', 'password', 'updatedAt'
+          ])
+        );
+      allow delete: if isSignedIn() && isVerified() && isValidId(distributorId) &&
+        (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // 3. Orders Collection
+    match /orders/{orderId} {
+      allow get: if isSignedIn() && isValidId(orderId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isVerified() && isValidId(orderId) &&
+        isValidOrder(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        existsAfter(/databases/$(database)/documents/products/$(incoming().productId)) &&
+        getAfter(/databases/$(database)/documents/products/$(incoming().productId)).data.ownerId == request.auth.uid;
+      allow update: if isValidOrder(incoming()) && isSignedIn() && isVerified() && isValidId(orderId) &&
+        existing().ownerId == request.auth.uid &&
+        incoming().ownerId == existing().ownerId &&
+        (incoming().createdAt == existing().createdAt || incoming().createdAt == request.time) &&
+        incoming().productId == existing().productId &&
+        incoming().referringDistributorId == existing().referringDistributorId &&
+        incoming().updatedAt == request.time && (
+          isAdmin() || (
+            // Terminal State Locking: cancelled orders cannot be modified
+            existing().status != 'cancelled' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'paymentMethod', 'paymentRef', 'updatedAt'])
+          )
+        );
+      allow delete: if isSignedIn() && isVerified() && isValidId(orderId) &&
+        (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // 4. Commissions Collection (4-Level Unilevel Payout Ledger)
+    match /commissions/{commissionId} {
+      allow get: if isSignedIn() && isValidId(commissionId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isVerified() && isValidId(commissionId) &&
+        isValidCommission(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        existsAfter(/databases/$(database)/documents/orders/$(incoming().orderId)) &&
+        getAfter(/databases/$(database)/documents/orders/$(incoming().orderId)).data.ownerId == request.auth.uid;
+      allow update: if isValidCommission(incoming()) && isSignedIn() && isVerified() && isValidId(commissionId) &&
+        existing().ownerId == request.auth.uid &&
+        incoming().ownerId == existing().ownerId &&
+        (incoming().createdAt == existing().createdAt || incoming().createdAt == request.time) &&
+        incoming().orderId == existing().orderId &&
+        incoming().beneficiaryId == existing().beneficiaryId &&
+        incoming().sourceDistributorId == existing().sourceDistributorId &&
+        incoming().unilevelTier == existing().unilevelTier &&
+        incoming().commissionAmount == existing().commissionAmount &&
+        incoming().updatedAt == request.time && (
+          isAdmin() || (
+            // Terminal State Locking: paid or voided commissions cannot be modified
+            existing().payoutStatus == 'pending' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['payoutStatus', 'updatedAt'])
+          )
+        );
+      allow delete: if isSignedIn() && isVerified() && isValidId(commissionId) &&
+        (existing().ownerId == request.auth.uid || isAdmin());
+    }
+
+    // 5. Brand & 4-Level Plan Settings Collection
+    match /settings/{settingId} {
+      allow get: if isSignedIn() && isValidId(settingId) && (existing().ownerId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && existing().ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isVerified() && isValidId(settingId) &&
+        isValidSettings(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidSettings(incoming()) && isSignedIn() && isVerified() && isValidId(settingId) &&
+        existing().ownerId == request.auth.uid &&
+        incoming().ownerId == existing().ownerId &&
+        (incoming().createdAt == existing().createdAt || incoming().createdAt == request.time) &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'brandName', 'brandTagline', 'currencySymbol',
+            'level1Rate', 'level2Rate', 'level3Rate', 'level4Rate',
+            'minActivePv', 'updatedAt'
+          ])
+        );
+      allow delete: if isSignedIn() && isVerified() && isValidId(settingId) &&
+        (existing().ownerId == request.auth.uid || isAdmin());
+    }
+  }
+}

@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-display: 'Fraunces', 'Noto Sans Lao', Georgia, serif;
+    --font-sans: 'Plus Jakarta Sans', 'Noto Sans Lao', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Noto Sans Lao', monospace;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #FAF9F6;
+    color: #18181B;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, .font-display {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+
+  .font-mono, .tabular-nums {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #18181b !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* When universal print stage has active HTML content, print ONLY that stage cleanly */
+  body.pl-universal-printing #pl-main-app-shell {
+    display: none !important;
+  }
+
+  body.pl-universal-printing #pl-universal-print-stage {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  /* Fallback when printing the bill modal directly */
+  body:not(.pl-universal-printing) #pl-main-app-shell > header,
+  body:not(.pl-universal-printing) #pl-main-app-shell > nav,
+  body:not(.pl-universal-printing) #pl-main-app-shell > footer,
+  body:not(.pl-universal-printing) #pl-main-app-shell > main > *:not(#pl-bill-print-container) {
+    display: none !important;
+  }
+
+  #pl-bill-print-container {
+    display: block !important;
+    position: static !important;
+    overflow: visible !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #pl-printable-bill-area,
+  #pl-printable-bill-area * {
+    visibility: visible !important;
+  }
+
+  #pl-printable-bill-area {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 12px !important;
+    background: #ffffff !important;
+    color: #18181b !important;
+    box-shadow: none !important;
+  }
+}
+

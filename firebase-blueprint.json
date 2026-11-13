@@ -1,0 +1,668 @@
+{
+  "entities": {
+    "AdminStaff": {
+      "title": "AdminStaff",
+      "description": "Backend administrator account with role-based control panel permissions.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the primary system owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Full name of the administrator.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "description": "Administrator sign-in email address.",
+          "minLength": 3,
+          "maxLength": 120
+        },
+        "role": {
+          "type": "string",
+          "description": "Assigned backend control panel role.",
+          "enum": [
+            "Super Admin",
+            "Inventory Manager",
+            "Payout Controller",
+            "Network Director"
+          ]
+        },
+        "permissionsSummary": {
+          "type": "string",
+          "description": "Scope of backend control permissions granted.",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "status": {
+          "type": "string",
+          "description": "Administrator account status.",
+          "enum": ["active", "suspended"]
+        },
+        "username": {
+          "type": "string",
+          "description": "Administrator custom sign-in username ID.",
+          "maxLength": 40
+        },
+        "password": {
+          "type": "string",
+          "description": "Administrator sign-in password credential.",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "ownerId",
+        "fullName",
+        "email",
+        "role",
+        "permissionsSummary",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "In-stock own-brand product SKU with retail price, member price, and Commissionable Volume (PV).",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the brand owner who owns this inventory item.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "sku": {
+          "type": "string",
+          "description": "Unique product stock keeping unit code.",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the own-brand product.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "category": {
+          "type": "string",
+          "description": "Product category label.",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "description": {
+          "type": "string",
+          "description": "Product formulation and benefit summary.",
+          "minLength": 1,
+          "maxLength": 600
+        },
+        "retailPrice": {
+          "type": "number",
+          "description": "Standard customer retail price."
+        },
+        "memberPrice": {
+          "type": "number",
+          "description": "Distributor wholesale/member price."
+        },
+        "pv": {
+          "type": "number",
+          "description": "Personal / Commissionable Volume points assigned to the product."
+        },
+        "stock": {
+          "type": "number",
+          "description": "Current physical units available in stock."
+        },
+        "reorderLevel": {
+          "type": "number",
+          "description": "Low-stock alert threshold."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Product image asset path, URL, or compressed Data URL.",
+          "minLength": 1,
+          "maxLength": 350000
+        },
+        "status": {
+          "type": "string",
+          "description": "Inventory availability status.",
+          "enum": ["active", "low_stock", "archived"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "ownerId",
+        "sku",
+        "name",
+        "category",
+        "description",
+        "retailPrice",
+        "memberPrice",
+        "pv",
+        "stock",
+        "reorderLevel",
+        "imageUrl",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Distributor": {
+      "title": "Distributor",
+      "description": "Unilevel MLM distributor node in the 4-level sponsorship genealogy tree.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the brand owner managing this network.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "code": {
+          "type": "string",
+          "description": "Distributor referral code used for order attribution.",
+          "minLength": 2,
+          "maxLength": 32,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Full display name of the distributor partner.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "rank": {
+          "type": "string",
+          "description": "Current Unilevel career rank.",
+          "enum": [
+            "Brand Partner",
+            "Silver Director",
+            "Gold Director",
+            "Emerald Executive",
+            "Diamond Ambassador"
+          ]
+        },
+        "sponsorId": {
+          "type": "string",
+          "description": "Document ID of direct upline sponsor or ROOT for frontline brand founder.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "levelDepth": {
+          "type": "number",
+          "description": "Generation depth from the root distributor."
+        },
+        "personalSalesVolume": {
+          "type": "number",
+          "description": "Cumulative Personal Volume (PV) from direct sales."
+        },
+        "groupSalesVolume": {
+          "type": "number",
+          "description": "Cumulative Group Volume (GV) across 4 downline levels."
+        },
+        "totalCommissionEarned": {
+          "type": "number",
+          "description": "Total lifetime Unilevel commissions earned across L1-L4."
+        },
+        "pendingPayout": {
+          "type": "number",
+          "description": "Current unpaid wallet balance awaiting disbursement."
+        },
+        "paidOutTotal": {
+          "type": "number",
+          "description": "Cumulative commission already disbursed."
+        },
+        "status": {
+          "type": "string",
+          "description": "Distributor account status.",
+          "enum": ["active", "suspended"]
+        },
+        "email": {
+          "type": "string",
+          "description": "Member registration and sign-in email address.",
+          "maxLength": 120
+        },
+        "phone": {
+          "type": "string",
+          "description": "Member phone or WhatsApp contact number.",
+          "maxLength": 40
+        },
+        "nationalId": {
+          "type": "string",
+          "description": "KYC National ID card or passport number.",
+          "maxLength": 60
+        },
+        "bankName": {
+          "type": "string",
+          "description": "KYC bank name for commission payouts.",
+          "maxLength": 80
+        },
+        "bankAccount": {
+          "type": "string",
+          "description": "KYC bank account number for commission payouts.",
+          "maxLength": 60
+        },
+        "bankAccountName": {
+          "type": "string",
+          "description": "Bank account holder full name.",
+          "maxLength": 100
+        },
+        "bankQrData": {
+          "type": "string",
+          "description": "Member personal Bank QR code reference or payload.",
+          "maxLength": 2000
+        },
+        "kycDocType": {
+          "type": "string",
+          "description": "Type of uploaded KYC document (National ID, Passport, Driver License).",
+          "maxLength": 40
+        },
+        "kycDocName": {
+          "type": "string",
+          "description": "Uploaded KYC document file name or verification reference.",
+          "maxLength": 200
+        },
+        "kycStatus": {
+          "type": "string",
+          "description": "Member KYC verification status.",
+          "enum": ["unverified", "pending", "verified"]
+        },
+        "activePackage": {
+          "type": "string",
+          "description": "Activated member package tier.",
+          "enum": [
+            "None",
+            "Bronze Starter",
+            "Silver Builder",
+            "Gold Pro",
+            "Diamond Founder"
+          ]
+        },
+        "username": {
+          "type": "string",
+          "description": "Member custom sign-in username ID.",
+          "maxLength": 40
+        },
+        "password": {
+          "type": "string",
+          "description": "Member sign-in password credential.",
+          "maxLength": 64
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "ownerId",
+        "code",
+        "fullName",
+        "rank",
+        "sponsorId",
+        "levelDepth",
+        "personalSalesVolume",
+        "groupSalesVolume",
+        "totalCommissionEarned",
+        "pendingPayout",
+        "paidOutTotal",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Product sales order that deducts brand stock and triggers 4-level Unilevel commissions.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the brand owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "orderNumber": {
+          "type": "string",
+          "description": "Human-readable order reference code.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Buyer name.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "orderType": {
+          "type": "string",
+          "description": "Whether purchased at retail or member pricing.",
+          "enum": ["retail", "member"]
+        },
+        "referringDistributorId": {
+          "type": "string",
+          "description": "Distributor ID credited with the direct sale (Level 1 sponsor start).",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "referringDistributorName": {
+          "type": "string",
+          "description": "Display name of the referring distributor.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "productId": {
+          "type": "string",
+          "description": "Purchased product document ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "productName": {
+          "type": "string",
+          "description": "Purchased product name.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Units purchased."
+        },
+        "unitPrice": {
+          "type": "number",
+          "description": "Price per unit applied."
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Total order revenue."
+        },
+        "totalPv": {
+          "type": "number",
+          "description": "Total Commissionable Volume (PV) generated by this order."
+        },
+        "totalCommissionGenerated": {
+          "type": "number",
+          "description": "Sum of L1-L4 Unilevel commissions generated by this order."
+        },
+        "status": {
+          "type": "string",
+          "description": "Order fulfillment status.",
+          "enum": ["processing", "fulfilled", "cancelled"]
+        },
+        "paymentMethod": {
+          "type": "string",
+          "description": "Payment method used (e.g. bank_qr, cash, wallet).",
+          "maxLength": 40
+        },
+        "paymentRef": {
+          "type": "string",
+          "description": "Bank QR payment slip reference or transaction ID.",
+          "maxLength": 100
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "ownerId",
+        "orderNumber",
+        "customerName",
+        "orderType",
+        "referringDistributorId",
+        "referringDistributorName",
+        "productId",
+        "productName",
+        "quantity",
+        "unitPrice",
+        "totalAmount",
+        "totalPv",
+        "totalCommissionGenerated",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Commission": {
+      "title": "Commission",
+      "description": "Single-tier Unilevel commission ledger entry (Level 1 to Level 4) created from an Order.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the brand owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Source order document ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "orderNumber": {
+          "type": "string",
+          "description": "Human-readable order code.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "beneficiaryId": {
+          "type": "string",
+          "description": "Distributor ID receiving this commission.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "beneficiaryName": {
+          "type": "string",
+          "description": "Name of distributor receiving this commission.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "sourceDistributorId": {
+          "type": "string",
+          "description": "Distributor ID who originated the order.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "sourceDistributorName": {
+          "type": "string",
+          "description": "Name of distributor who originated the order.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "unilevelTier": {
+          "type": "number",
+          "description": "Unilevel generation tier (1, 2, 3, or 4)."
+        },
+        "percentageRate": {
+          "type": "number",
+          "description": "Commission percentage applied for this tier."
+        },
+        "basePv": {
+          "type": "number",
+          "description": "Commissionable volume base used for calculation."
+        },
+        "commissionAmount": {
+          "type": "number",
+          "description": "Calculated monetary commission payout."
+        },
+        "payoutStatus": {
+          "type": "string",
+          "description": "Disbursement status of the commission.",
+          "enum": ["pending", "paid", "voided"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "ownerId",
+        "orderId",
+        "orderNumber",
+        "beneficiaryId",
+        "beneficiaryName",
+        "sourceDistributorId",
+        "sourceDistributorName",
+        "unilevelTier",
+        "percentageRate",
+        "basePv",
+        "commissionAmount",
+        "payoutStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BrandPlanSettings": {
+      "title": "BrandPlanSettings",
+      "description": "Brand identity and 4-Level Unilevel compensation plan configuration.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "UID of the brand owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "brandName": {
+          "type": "string",
+          "description": "Custom brand name.",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "brandTagline": {
+          "type": "string",
+          "description": "Brand positioning subtitle.",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "currencySymbol": {
+          "type": "string",
+          "description": "Display currency mode (e.g. ₭ or ฿).",
+          "minLength": 1,
+          "maxLength": 16
+        },
+        "level1Rate": {
+          "type": "number",
+          "description": "Level 1 direct sponsor commission percentage (e.g. 15%)."
+        },
+        "level2Rate": {
+          "type": "number",
+          "description": "Level 2 second generation commission percentage (e.g. 8%)."
+        },
+        "level3Rate": {
+          "type": "number",
+          "description": "Level 3 third generation commission percentage (e.g. 5%)."
+        },
+        "level4Rate": {
+          "type": "number",
+          "description": "Level 4 fourth generation commission percentage (e.g. 3%)."
+        },
+        "minActivePv": {
+          "type": "number",
+          "description": "Minimum monthly Personal Volume required to qualify for multi-level overrides."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "ownerId",
+        "brandName",
+        "brandTagline",
+        "currencySymbol",
+        "level1Rate",
+        "level2Rate",
+        "level3Rate",
+        "level4Rate",
+        "minActivePv",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminStaff" },
+      "description": "Backend administrator accounts and control panel role permissions."
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "In-stock own-brand products managed by the brand owner."
+    },
+    "/distributors/{distributorId}": {
+      "schema": { "$ref": "#/entities/Distributor" },
+      "description": "4-Level Unilevel distributor network members and genealogy."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer and member product orders."
+    },
+    "/commissions/{commissionId}": {
+      "schema": { "$ref": "#/entities/Commission" },
+      "description": "4-Level Unilevel commission ledger entries linked to orders."
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/BrandPlanSettings" },
+      "description": "Brand and 4-Level Unilevel compensation rate configuration."
+    }
+  }
+}

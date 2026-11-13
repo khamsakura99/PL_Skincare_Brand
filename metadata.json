@@ -1,0 +1,6 @@
+{
+  "name": "Aura Unilevel — 4-Level MLM & Brand Inventory Platform",
+  "description": "Direct-to-consumer brand inventory, stock management, and 4-Level Unilevel MLM compensation & genealogy platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
