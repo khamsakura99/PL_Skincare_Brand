@@ -12,6 +12,7 @@ import {
   confirmPasswordReset,
   verifyPasswordResetCode,
   updatePassword,
+  createUserWithEmailAndPassword,
   User,
 } from 'firebase/auth';
 import {
@@ -70,6 +71,7 @@ import {
   auth,
   db,
   googleProvider,
+  getHelperAuth,
   handleFirestoreError,
   OperationType,
 } from './firebase';
@@ -1071,6 +1073,32 @@ export default function App() {
   const [pwdResetShowNew, setPwdResetShowNew] = useState<boolean>(false);
   const [pwdResetBusy, setPwdResetBusy] = useState<boolean>(false);
   const [pwdResetEmailStatus, setPwdResetEmailStatus] = useState<string>('');
+  const [pwdResetDeliveryState, setPwdResetDeliveryState] = useState<
+    'idle' | 'sent' | 'activation_needed' | 'manual_needed'
+  >('idle');
+  const [showEmailJsConfig, setShowEmailJsConfig] = useState<boolean>(false);
+  const [emailJsConfig, setEmailJsConfig] = useState<{
+    serviceId: string;
+    templateId: string;
+    publicKey: string;
+  }>(() => {
+    try {
+      const saved = window.localStorage.getItem('pl_skincare_emailjs_cfg_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            serviceId: String(parsed.serviceId || ''),
+            templateId: String(parsed.templateId || ''),
+            publicKey: String(parsed.publicKey || ''),
+          };
+        }
+      }
+    } catch {
+      // ignore storage errors
+    }
+    return { serviceId: '', templateId: '', publicKey: '' };
+  });
   const [newAdminUsername, setNewAdminUsername] = useState<string>('');
   const [newAdminPassword, setNewAdminPassword] = useState<string>('');
   const [showNewAdminPassword, setShowNewAdminPassword] =
@@ -5271,6 +5299,7 @@ export default function App() {
     setPwdResetNewPassword('');
     setPwdResetConfirmPassword('');
     setPwdResetEmailStatus('');
+    setPwdResetDeliveryState('idle');
     setShowPasswordResetModal(true);
   };
 
@@ -5351,10 +5380,30 @@ export default function App() {
       }
     }
 
+    let resolvedKnownPassword = '';
+    if (pwdResetRole === 'admin') {
+      const matchedAdmForPwd = admins.find(
+        (a) =>
+          (resolvedAccountId && a.id === resolvedAccountId) ||
+          a.email.toLowerCase() === resolvedEmail.toLowerCase()
+      );
+      resolvedKnownPassword =
+        matchedAdmForPwd?.password ||
+        (matchedAdmForPwd?.id === 'admin_super_founder' ? 'Pl5550' : 'Pl5550!');
+    } else {
+      const matchedMemberForPwd = distributors.find(
+        (d) =>
+          (resolvedAccountId && d.id === resolvedAccountId) ||
+          (d.email && d.email.toLowerCase() === resolvedEmail.toLowerCase())
+      );
+      resolvedKnownPassword = matchedMemberForPwd?.password || 'PlMember123!';
+    }
+
     setPwdResetBusy(true);
     setPwdResetTargetEmail(resolvedEmail);
     setPwdResetAccountId(resolvedAccountId);
     setPwdResetAccountLabel(resolvedLabel);
+    setPwdResetDeliveryState('idle');
 
     const token = `plrst_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
     const linkUrl = new URL(window.location.href);
@@ -5393,45 +5442,187 @@ export default function App() {
     setPwdResetToken(token);
     setPwdResetGeneratedLink(fullResetUrl);
 
-    let firebaseSent = false;
-    let firebaseMsg = '';
+    // 1. Verify & auto-provision Firebase Email/Password user on secondary Auth instance
+    // (Prevents false "sent!" when Firebase Email Enumeration Protection silently drops unregistered emails)
+    let firebaseConfirmedSent = false;
+    let firebaseDisabled = false;
+    let firebaseUserUnverified = false;
     try {
-      const returnBaseUrl = `${window.location.origin}${window.location.pathname}`;
-      await sendPasswordResetEmail(auth, resolvedEmail, {
-        url: returnBaseUrl,
-        handleCodeInApp: false,
-      });
-      firebaseSent = true;
-      firebaseMsg =
-        lang === 'lo'
-          ? `ສົ່ງອີເມວຣີເຊັດລະຫັດຜ່ານຜ່ານ Firebase Auth ໄປທີ່ ${resolvedEmail} ແລ້ວ (ກະລຸນາກວດ Inbox / Spam), ພ້ອມສ້າງລິ້ງຣີເຊັດໂດຍກົງໃຫ້ດ້ານລຸ່ມ.`
-          : `Firebase Auth password reset email sent to ${resolvedEmail} (please check Inbox / Spam), and a direct reset link is also ready below.`;
-    } catch (err) {
-      const code = (err as { code?: string })?.code || '';
-      if (code === 'auth/operation-not-allowed') {
-        firebaseMsg =
-          lang === 'lo'
-            ? `ສ້າງລິ້ງຣີເຊັດສຳລັບ ${resolvedEmail} ສຳເລັດແລ້ວ! ໝາຍເຫດ: ຫາກຕ້ອງການສົ່ງຜ່ານ Firebase Auth ໂດຍກົງ ກະລຸນາເປີດ Email/Password ໃນ Firebase Console -> Authentication -> Sign-in method.`
-            : `Reset link created for ${resolvedEmail}! Tip: To also dispatch via Firebase Auth automatically, enable Email/Password under Firebase Console -> Authentication -> Sign-in method, or use the Email / Direct Link buttons below.`;
-      } else {
-        firebaseMsg =
-          lang === 'lo'
-            ? `ສ້າງລິ້ງຣີເຊັດລະຫັດຜ່ານສຳລັບ ${resolvedEmail} ສຳເລັດແລ້ວ! ທ່ານສາມາດກົດ "ສົ່ງຜ່ານແອັບອີເມວ" ຫຼື ຄັດລອກ/ເປີດລິ້ງເພື່ອຕັ້ງລະຫັດຜ່ານໃໝ່ໄດ້ທັນທີ.`
-            : `Reset link generated for ${resolvedEmail}! Use "Send via Email App" or copy/open the secure link below to set your new password immediately.`;
+      const helperAuth = getHelperAuth();
+      const ensurePwd =
+        resolvedKnownPassword.length >= 6
+          ? resolvedKnownPassword
+          : `${resolvedKnownPassword}123456`.slice(0, 8);
+      let userExistsInFirebase = false;
+      try {
+        await createUserWithEmailAndPassword(helperAuth, resolvedEmail, ensurePwd);
+        userExistsInFirebase = true;
+        await signOut(helperAuth);
+      } catch (createErr) {
+        const cCode = (createErr as { code?: string })?.code || '';
+        if (cCode === 'auth/email-already-in-use') {
+          userExistsInFirebase = true;
+        } else if (cCode === 'auth/operation-not-allowed') {
+          firebaseDisabled = true;
+        } else {
+          firebaseUserUnverified = true;
+        }
       }
-    } finally {
-      setPwdResetBusy(false);
+
+      if (userExistsInFirebase) {
+        const returnBaseUrl = `${window.location.origin}${window.location.pathname}`;
+        try {
+          await sendPasswordResetEmail(helperAuth, resolvedEmail, {
+            url: returnBaseUrl,
+            handleCodeInApp: false,
+          });
+          firebaseConfirmedSent = true;
+        } catch (sendErr) {
+          const sCode = (sendErr as { code?: string })?.code || '';
+          if (
+            sCode === 'auth/unauthorized-continue-uri' ||
+            sCode === 'auth/invalid-continue-uri'
+          ) {
+            await sendPasswordResetEmail(helperAuth, resolvedEmail);
+            firebaseConfirmedSent = true;
+          } else if (sCode === 'auth/operation-not-allowed') {
+            firebaseDisabled = true;
+          }
+        }
+      }
+    } catch {
+      // Fall through to EmailJS / FormSubmit autosend
     }
 
-    setPwdResetEmailStatus(firebaseMsg);
-    showNotice(
-      firebaseSent
-        ? `ສົ່ງລິ້ງຣີເຊັດລະຫັດຜ່ານໄປທີ່ ${resolvedEmail} ສຳເລັດແລ້ວ!`
-        : `ສ້າງລິ້ງຣີເຊັດລະຫັດຜ່ານສຳລັບ ${resolvedEmail} ແລ້ວ!`,
-      firebaseSent
-        ? `Password reset link sent to ${resolvedEmail}!`
-        : `Password reset link ready for ${resolvedEmail}!`
-    );
+    // 2. EmailJS REST Auto-Send (if configured)
+    let emailJsSent = false;
+    if (
+      emailJsConfig.serviceId.trim() &&
+      emailJsConfig.templateId.trim() &&
+      emailJsConfig.publicKey.trim()
+    ) {
+      try {
+        const ejRes = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            service_id: emailJsConfig.serviceId.trim(),
+            template_id: emailJsConfig.templateId.trim(),
+            user_id: emailJsConfig.publicKey.trim(),
+            template_params: {
+              to_email: resolvedEmail,
+              user_email: resolvedEmail,
+              to_name: resolvedLabel || resolvedEmail,
+              reset_link: fullResetUrl,
+              account_role:
+                pwdResetRole === 'admin' ? 'Administrator' : 'User Member',
+              app_name: 'PL Skincare Brand',
+            },
+          }),
+        });
+        if (ejRes.ok) {
+          emailJsSent = true;
+        }
+      } catch {
+        // Ignore and try FormSubmit relay
+      }
+    }
+
+    // 3. Direct HTTPS Auto-Send Relay via FormSubmit AJAX API (Works on GitHub Pages without backend)
+    let formSubmitSent = false;
+    let formSubmitNeedsActivation = false;
+    if (!firebaseConfirmedSent && !emailJsSent) {
+      try {
+        const fsRes = await fetch(
+          `https://formsubmit.co/ajax/${encodeURIComponent(resolvedEmail)}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+            },
+            body: JSON.stringify({
+              _subject: `PL Skincare Brand — Password Reset Link (${pwdResetRole === 'admin' ? 'Administrator' : 'User Member'})`,
+              _template: 'table',
+              _captcha: 'false',
+              Account: resolvedLabel || resolvedEmail,
+              Email: resolvedEmail,
+              Role:
+                pwdResetRole === 'admin' ? 'Administrator' : 'User Member (L1-L5)',
+              Reset_Password_Link: fullResetUrl,
+              Instructions:
+                'Click the Reset Password Link above within 24 hours to set your new password.',
+            }),
+          }
+        );
+        const fsJson = (await fsRes.json().catch(() => null)) as {
+          success?: boolean | string;
+          message?: string;
+        } | null;
+        const fsMsg = String(fsJson?.message || '').toLowerCase();
+        const fsSuccess =
+          fsJson?.success === true || fsJson?.success === 'true';
+        if (fsMsg.includes('activat')) {
+          formSubmitNeedsActivation = true;
+        } else if (fsSuccess && fsRes.ok) {
+          formSubmitSent = true;
+        }
+      } catch {
+        // Network or offline fallback handled cleanly below
+      }
+    }
+
+    setPwdResetBusy(false);
+
+    if (firebaseConfirmedSent || emailJsSent || formSubmitSent) {
+      const channelLabel = firebaseConfirmedSent
+        ? 'Firebase Auth'
+        : emailJsSent
+        ? 'EmailJS Auto-Send'
+        : 'Auto-Mail Relay';
+      setPwdResetDeliveryState('sent');
+      setPwdResetEmailStatus(
+        lang === 'lo'
+          ? `ສົ່ງອີເມວຣີເຊັດລະຫັດຜ່ານ (${channelLabel}) ໄປທີ່ ${resolvedEmail} ສຳເລັດແລ້ວ! ກະລຸນາກວດ Inbox / Spam ຫຼື ໃຊ້ລິ້ງດ້ານລຸ່ມ.`
+          : `Password reset email auto-sent via ${channelLabel} to ${resolvedEmail}! Please check Inbox / Spam, or use the direct reset link below.`
+      );
+      showNotice(
+        `ສົ່ງອີເມວຣີເຊັດລະຫັດຜ່ານໄປທີ່ ${resolvedEmail} ສຳເລັດແລ້ວ!`,
+        `Password reset email auto-sent to ${resolvedEmail}!`
+      );
+    } else if (formSubmitNeedsActivation) {
+      setPwdResetDeliveryState('activation_needed');
+      setPwdResetEmailStatus(
+        lang === 'lo'
+          ? `ລະບົບໄດ້ສົ່ງອີເມວ "Activate Form" (ຢືນຢັນຄັ້ງທຳອິດ) ໄປທີ່ ${resolvedEmail} ແລ້ວ! ກະລຸນາກົດປຸ່ມ Activate ໃນ Gmail ຄັ້ງດຽວ ແລ້ວກົດສົ່ງໃໝ່ເພື່ອຮັບລິ້ງອັດຕະໂນມັດ (ຫຼື ກົດ "ເປີດໜ້າຕັ້ງລະຫັດໃໝ່ທັນທີ" ດ້ານລຸ່ມໄດ້ເລີຍ).`
+          : `A one-time "Activate Form" email was just sent to ${resolvedEmail}! Open your Gmail Inbox/Spam and click Activate once, then click Auto-Send again (or use "Open Reset Page Now" below immediately).`
+      );
+      showNotice(
+        `ສົ່ງອີເມວຢືນຢັນຄັ້ງທຳອິດ (Activate) ໄປທີ່ ${resolvedEmail} ແລ້ວ!`,
+        `Sent 1-time activation email to ${resolvedEmail}!`
+      );
+    } else {
+      setPwdResetDeliveryState('manual_needed');
+      const reasonHintLo = firebaseDisabled
+        ? 'ຍັງບໍ່ໄດ້ເປີດ Email/Password ໃນ Firebase Console (Authentication -> Sign-in method) ແລະ EmailJS ຍັງບໍ່ໄດ້ຕັ້ງຄ່າ.'
+        : firebaseUserUnverified
+        ? 'ບໍ່ສາມາດຢືນຢັນອີເມວໃນ Firebase Auth ອັດຕະໂນມັດໄດ້.'
+        : 'ບໍ່ສາມາດສົ່ງຜ່ານ Mail Server ອັດຕະໂນມັດໄດ້.';
+      const reasonHintEn = firebaseDisabled
+        ? 'Email/Password sign-in is disabled in Firebase Console (Authentication -> Sign-in method) and EmailJS is not configured yet.'
+        : firebaseUserUnverified
+        ? 'Could not auto-verify this email in Firebase Auth.'
+        : 'Automatic mail relay was blocked.';
+      setPwdResetEmailStatus(
+        lang === 'lo'
+          ? `ສ້າງລິ້ງຣີເຊັດໃຫ້ ${resolvedEmail} ແລ້ວ ແຕ່ຍັງບໍ່ສາມາດສົ່ງອີເມວອັດຕະໂນມັດ (${reasonHintLo}) — ທ່ານສາມາດຕັ້ງລະຫັດຜ່ານໃໝ່ທັນທີຜ່ານປຸ່ມດ້ານລຸ່ມ ຫຼື ຕັ້ງຄ່າ EmailJS Auto-Send.`
+          : `Reset link created for ${resolvedEmail}, but auto-email could not send (${reasonHintEn}). You can still reset immediately below, send via Email App, or configure EmailJS Auto-Send.`
+      );
+      showNotice(
+        `ສ້າງລິ້ງຣີເຊັດສຳລັບ ${resolvedEmail} ແລ້ວ (ກະລຸນາກວດວິທີສົ່ງອັດຕະໂນມັດໃນໜ້າຕ່າງ).`,
+        `Reset link ready for ${resolvedEmail} (check Auto-Send setup options).`
+      );
+    }
   };
 
   const handleConfirmPasswordReset = async (e: React.FormEvent) => {
@@ -30270,20 +30461,32 @@ export default function App() {
                   </button>
 
                   {pwdResetEmailStatus && (
-                    <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-xs text-emerald-900 space-y-2.5">
+                    <div
+                      className={`p-3.5 rounded-xl border text-xs space-y-2.5 ${
+                        pwdResetDeliveryState === 'sent'
+                          ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                          : 'bg-amber-50 border-amber-300 text-amber-950'
+                      }`}
+                    >
                       <p className="font-semibold leading-relaxed">
                         {pwdResetEmailStatus}
                       </p>
 
                       {pwdResetGeneratedLink && (
-                        <div className="space-y-2 pt-1 border-t border-emerald-200">
+                        <div
+                          className={`space-y-2 pt-1 border-t ${
+                            pwdResetDeliveryState === 'sent'
+                              ? 'border-emerald-200'
+                              : 'border-amber-200'
+                          }`}
+                        >
                           <p className="text-[11px] font-bold text-[#2E1A0F] flex items-center gap-1">
                             <Link2 className="w-3.5 h-3.5 text-[#8B6528]" />
                             {lang === 'lo'
                               ? `ລິ້ງຣີເຊັດສຳລັບ ${pwdResetTargetEmail}:`
                               : `Direct Reset Link for ${pwdResetTargetEmail}:`}
                           </p>
-                          <div className="p-2 bg-white border border-emerald-200 rounded-lg text-[10px] font-mono break-all text-zinc-700 select-all">
+                          <div className="p-2 bg-white border border-stone-200 rounded-lg text-[10px] font-mono break-all text-zinc-700 select-all">
                             {pwdResetGeneratedLink}
                           </div>
                           <div className="flex flex-wrap gap-2">
@@ -30333,6 +30536,98 @@ export default function App() {
                       )}
                     </div>
                   )}
+
+                  {/* Optional EmailJS Auto-Send Config (100% Free Gmail / SMTP Autosend on GitHub Pages) */}
+                  <div className="pt-2 border-t border-[#C89D54]/30">
+                    <button
+                      type="button"
+                      onClick={() => setShowEmailJsConfig((prev) => !prev)}
+                      className="text-[11px] font-semibold text-[#6B4423] hover:text-[#2E1A0F] underline"
+                    >
+                      {lang === 'lo'
+                        ? showEmailJsConfig
+                          ? '▲ ເຊື່ອງຕັ້ງຄ່າ EmailJS Auto-Send'
+                          : '⚙ ຕັ້ງຄ່າ EmailJS Auto-Send (ສົ່ງອີເມວອັດຕະໂນມັດທຸກຄັ້ງຜ່ານ Gmail)'
+                        : showEmailJsConfig
+                        ? '▲ Hide EmailJS Auto-Send Settings'
+                        : '⚙ Configure EmailJS Auto-Send (Instant Direct Email Delivery)'}
+                    </button>
+
+                    {showEmailJsConfig && (
+                      <div className="mt-2.5 p-3 bg-white border border-[#C89D54]/60 rounded-xl space-y-2 text-[11px]">
+                        <p className="text-zinc-600 leading-relaxed">
+                          {lang === 'lo'
+                            ? 'ຕື່ມລະຫັດ EmailJS (ຫຼື ເປີດ Email/Password ໃນ Firebase Console) ເພື່ອສົ່ງອີເມວຣີເຊັດອັດຕະໂນມັດໂດຍບໍ່ຕ້ອງກົດ Activate:'
+                            : 'Enter your free EmailJS keys (template params: to_email, to_name, reset_link, account_role) to auto-send directly from your own Gmail:'}
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            placeholder="Service ID (service_xxx)"
+                            value={emailJsConfig.serviceId}
+                            onChange={(e) => {
+                              const next = {
+                                ...emailJsConfig,
+                                serviceId: e.target.value,
+                              };
+                              setEmailJsConfig(next);
+                              try {
+                                window.localStorage.setItem(
+                                  'pl_skincare_emailjs_cfg_v1',
+                                  JSON.stringify(next)
+                                );
+                              } catch {
+                                // ignore
+                              }
+                            }}
+                            className="px-2.5 py-1.5 font-mono bg-stone-50 border border-stone-300 rounded-lg"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Template ID (template_xxx)"
+                            value={emailJsConfig.templateId}
+                            onChange={(e) => {
+                              const next = {
+                                ...emailJsConfig,
+                                templateId: e.target.value,
+                              };
+                              setEmailJsConfig(next);
+                              try {
+                                window.localStorage.setItem(
+                                  'pl_skincare_emailjs_cfg_v1',
+                                  JSON.stringify(next)
+                                );
+                              } catch {
+                                // ignore
+                              }
+                            }}
+                            className="px-2.5 py-1.5 font-mono bg-stone-50 border border-stone-300 rounded-lg"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Public Key"
+                            value={emailJsConfig.publicKey}
+                            onChange={(e) => {
+                              const next = {
+                                ...emailJsConfig,
+                                publicKey: e.target.value,
+                              };
+                              setEmailJsConfig(next);
+                              try {
+                                window.localStorage.setItem(
+                                  'pl_skincare_emailjs_cfg_v1',
+                                  JSON.stringify(next)
+                                );
+                              } catch {
+                                // ignore
+                              }
+                            }}
+                            className="px-2.5 py-1.5 font-mono bg-stone-50 border border-stone-300 rounded-lg"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </form>
               ) : (
                 <form
