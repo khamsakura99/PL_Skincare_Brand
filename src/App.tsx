@@ -481,7 +481,7 @@ export default function App() {
   const [memberLoginInput, setMemberLoginInput] =
     useState<string>('Pl Skincare1');
   const [memberLoginPassword, setMemberLoginPassword] =
-    useState<string>('123456');
+    useState<string>('');
   const [showLoginPassword, setShowLoginPassword] = useState<boolean>(false);
   const [memberAuthMode, setMemberAuthMode] = useState<'signin' | 'register'>(
     'signin'
@@ -1565,7 +1565,7 @@ export default function App() {
     setMemberLoginInput(
       member.username || member.code || member.email || member.phone || 'L1'
     );
-    setMemberLoginPassword(member.password || '123456');
+    setMemberLoginPassword('');
     showNotice(
       `ເຂົ້າສູ່ລະບົບແຜງຄວບຄຸມສະມາຊິກ: ${localizePersonName(member.fullName, 'lo')} (${member.username || member.code})`,
       `Signed in to Member Control Panel: ${localizePersonName(member.fullName, 'en')} (${member.username || member.code})`
@@ -1634,17 +1634,17 @@ export default function App() {
 
     if (!found) {
       showNotice(
-        `ບໍ່ພົບບັນຊີສະມາຊິກ "${memberLoginInput}". ລອງໃຊ້ Pl Skincare1, Pl Skincare2, Pl Skincare3, Pl Skincare4, Pl Skincare5 (ລະຫັດຜ່ານ: 123456).`,
-        `Account "${memberLoginInput}" not found. Try Pl Skincare1, Pl Skincare2, Pl Skincare3, Pl Skincare4, or Pl Skincare5 (Password: 123456).`
+        `ບໍ່ພົບບັນຊີສະມາຊິກ "${memberLoginInput}". ກະລຸນາກວດສອບຊື່ຜູ້ໃຊ້ (Pl Skincare1 – Pl Skincare5 / ອີເມວ / ເບີໂທ).`,
+        `Account "${memberLoginInput}" not found. Check your Username (Pl Skincare1 – Pl Skincare5 / E-mail / Phone).`
       );
       return;
     }
 
-    const expectedPassword = found.password || '123456';
-    if (pwd !== expectedPassword && pwd !== '123456') {
+    const expectedPassword = (found.password || '123456').trim();
+    if (pwd !== expectedPassword) {
       showNotice(
-        `ລະຫັດຜ່ານ (Password) ບໍ່ຖືກຕ້ອງສຳລັບບັນຊີ "${found.username || found.code}". (ລະຫັດຜ່ານ: 123456)`,
-        `Incorrect password for account "${found.username || found.code}". (Default password: 123456)`
+        `ລະຫັດຜ່ານ (Password) ບໍ່ຖືກຕ້ອງສຳລັບບັນຊີ "${found.username || found.code}". ກະລຸນາພິມລະຫັດຜ່ານປັດຈຸບັນໃຫ້ຖືກຕ້ອງ ຫຼື ກົດຣີເຊັດລະຫັດຜ່ານ.`,
+        `Incorrect password for account "${found.username || found.code}". Please enter your current password or reset it.`
       );
       return;
     }
@@ -1837,7 +1837,7 @@ export default function App() {
     setMemberRegNationalId('');
     setMemberRegBankAccount('');
     setMemberLoginInput(cleanEmail || cleanPhone || cleanUsername);
-    setMemberLoginPassword(cleanPassword);
+    setMemberLoginPassword('');
     setMemberAuthMode('signin');
     handleSelectActiveMember(newDist);
     setMemberSubPanel('package');
@@ -2684,11 +2684,11 @@ export default function App() {
     if (!activeMember) return;
 
     const cleanUsername = sanitizeString(
-      kycForm.username || activeMember.username || activeMember.code,
+      (kycForm.username || activeMember.username || activeMember.code).trim(),
       VALIDATION_CONSTRAINTS.DISTRIBUTOR.USERNAME_MAX
     );
     const cleanPassword = sanitizeString(
-      kycForm.password || activeMember.password || '123456',
+      (kycForm.password || activeMember.password || '123456').trim(),
       VALIDATION_CONSTRAINTS.DISTRIBUTOR.PASSWORD_MAX
     );
     const cleanEmail = sanitizeString(
@@ -2757,29 +2757,28 @@ export default function App() {
           `distributors/${activeMember.id}`
         );
       }
-    } else {
-      setDistributors((prev) =>
-        prev.map((d) =>
-          d.id === activeMember.id
-            ? {
-                ...d,
-                username: cleanUsername,
-                password: cleanPassword,
-                email: cleanEmail,
-                phone: cleanPhone,
-                nationalId: cleanNationalId,
-                bankName: cleanBankName,
-                bankAccount: cleanBankAccount,
-                bankAccountName: cleanBankAccountName,
-                bankQrData: cleanBankQrData,
-                kycStatus: nextKycStatus,
-                kycDocType: cleanKycDocType,
-                kycDocName: cleanKycDocName,
-              }
-            : d
-        )
-      );
     }
+    setDistributors((prev) =>
+      prev.map((d) =>
+        d.id === activeMember.id
+          ? {
+              ...d,
+              username: cleanUsername,
+              password: cleanPassword,
+              email: cleanEmail,
+              phone: cleanPhone,
+              nationalId: cleanNationalId,
+              bankName: cleanBankName,
+              bankAccount: cleanBankAccount,
+              bankAccountName: cleanBankAccountName,
+              bankQrData: cleanBankQrData,
+              kycStatus: nextKycStatus,
+              kycDocType: cleanKycDocType,
+              kycDocName: cleanKycDocName,
+            }
+          : d
+      )
+    );
 
     showNotice(
       `ບັນທຶກບັນຊີທະນາຄານ, QR Code ແລະ ຢືນຢັນເອກະສານ KYC ສຳລັບ ${localizePersonName(activeMember.fullName, 'lo')} ສຳເລັດແລ້ວ.`,
@@ -11095,6 +11094,37 @@ export default function App() {
         } else if (field === 'status') {
           updated.status = rawVal === 'suspended' ? 'suspended' : 'active';
         }
+        if (user) {
+          const firestorePayload: Record<string, unknown> = {
+            updatedAt: serverTimestamp(),
+          };
+          if (field === 'levelDepth') firestorePayload.levelDepth = updated.levelDepth;
+          else if (field === 'username') firestorePayload.username = updated.username;
+          else if (field === 'password') firestorePayload.password = rawVal.trim();
+          else if (field === 'code') firestorePayload.code = updated.code;
+          else if (field === 'fullName') firestorePayload.fullName = updated.fullName;
+          else if (field === 'activePackage') firestorePayload.activePackage = toFirestoreSafePackageTier(updated.activePackage);
+          else if (field === 'rank') firestorePayload.rank = updated.rank;
+          else if (field === 'phone') firestorePayload.phone = updated.phone;
+          else if (field === 'email') firestorePayload.email = updated.email;
+          else if (field === 'nationalId') firestorePayload.nationalId = updated.nationalId;
+          else if (field === 'bankName') firestorePayload.bankName = updated.bankName;
+          else if (field === 'bankAccount') firestorePayload.bankAccount = updated.bankAccount;
+          else if (field === 'pvLak') firestorePayload.personalSalesVolume = updated.personalSalesVolume;
+          else if (field === 'gvLak') firestorePayload.groupSalesVolume = updated.groupSalesVolume;
+          else if (field === 'totalCommLak') firestorePayload.totalCommissionEarned = updated.totalCommissionEarned;
+          else if (field === 'pendingLak') firestorePayload.pendingPayout = updated.pendingPayout;
+          else if (field === 'paidLak') firestorePayload.paidOutTotal = updated.paidOutTotal;
+          else if (field === 'status') firestorePayload.status = updated.status;
+          if (field === 'password') {
+            updated.password = rawVal.trim();
+          }
+          updateDoc(doc(db, 'distributors', memberId), firestorePayload).catch(
+            () => {}
+          );
+        } else if (field === 'password') {
+          updated.password = rawVal.trim();
+        }
         return updated;
       })
     );
@@ -12151,8 +12181,7 @@ export default function App() {
             type="button"
             onClick={() => {
               setSignInPortalRole('member');
-              setMemberLoginInput('Pl Skincare1');
-              setMemberLoginPassword('123456');
+              setMemberLoginPassword('');
             }}
             className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
               activeRole === 'member'
@@ -12204,7 +12233,9 @@ export default function App() {
               ? lang === 'lo'
                 ? 'ກະລຸນາປ້ອນ Admin ID ແລະ ລະຫັດຜ່ານເພື່ອຈັດການລະບົບ (ເພີ່ມ / ແກ້ໄຂ / ອັບເດດ / ລຶບ)'
                 : 'Enter Administrator Username ID & Password for Add / Edit / Update / Delete access'
-              : 'L1=Pl Skincare1 · L2=Pl Skincare2 · L3=Pl Skincare3 · L4=Pl Skincare4 · L5=Pl Skincare5 | Pass: 123456'}
+              : lang === 'lo'
+              ? 'ກະລຸນາປ້ອນຊື່ບັນຊີ (Pl Skincare1 – Pl Skincare5) ແລະ ພິມລະຫັດຜ່ານຂອງທ່ານ'
+              : 'Enter Member Username (Pl Skincare1 – Pl Skincare5) & type your password'}
           </p>
         </div>
 
@@ -12246,12 +12277,14 @@ export default function App() {
           <div className="relative flex items-center">
             <Lock className="w-5 h-5 text-[#8C5A2B] absolute left-3.5 pointer-events-none" />
             <input
+              id="unified-signin-password"
               type={
                 (activeRole === 'admin' ? showAdminPassword : showLoginPassword)
                   ? 'text'
                   : 'password'
               }
               required
+              autoComplete="current-password"
               value={
                 activeRole === 'admin'
                   ? adminLoginPassword
@@ -12334,23 +12367,20 @@ export default function App() {
           </button>
         </form>
 
-        {/* 1-Click Instant Sign-In for User Members L1, L2, L3, L4, L5 & Administrator */}
+        {/* Account Selector (Fills Username Only — User Must Type Password to Sign In) */}
         <div className="mt-6 pt-5 border-t border-[#C89D54]/40 space-y-3">
           <p className="text-[11px] font-bold text-[#3B2314] text-center uppercase tracking-wider">
             {lang === 'lo'
-              ? 'ເລືອກເຂົ້າສູ່ລະບົບດ່ວນ (L1: Pl Skincare1 – L5: Pl Skincare5)'
-              : '1-Click Quick Sign In (L1: Pl Skincare1 – L5: Pl Skincare5)'}
+              ? 'ເລືອກບັນຊີ (L1–L5) ແລ້ວພິມລະຫັດຜ່ານເພື່ອເຂົ້າສູ່ລະບົບ'
+              : 'Select Member Account (L1–L5), Then Type Password to Sign In'}
           </p>
 
           <div className="grid grid-cols-5 gap-1.5">
             {(['L1', 'L2', 'L3', 'L4', 'L5'] as const).map((lvlCode, idx) => {
               const memberObj = l1ToL5Members[idx];
-              const uname = defaultUsernames[idx];
-              const isCurrent =
-                isMemberSignedIn &&
-                activeMember &&
-                memberObj &&
-                activeMember.id === memberObj.id;
+              const uname = memberObj?.username || defaultUsernames[idx];
+              const isSelectedInput =
+                memberLoginInput.trim().toLowerCase() === uname.toLowerCase();
               return (
                 <button
                   key={lvlCode}
@@ -12358,15 +12388,13 @@ export default function App() {
                   onClick={() => {
                     setSignInPortalRole('member');
                     setMemberLoginInput(uname);
-                    setMemberLoginPassword('123456');
-                    if (memberObj) {
-                      handleSelectActiveMember(memberObj);
-                      setShowSignInModal(false);
-                      setActiveTab('member');
-                    }
+                    setMemberLoginPassword('');
+                    window.setTimeout(() => {
+                      document.getElementById('unified-signin-password')?.focus();
+                    }, 30);
                   }}
                   className={`py-2 px-1 rounded-lg text-xs font-mono font-bold border transition-all flex flex-col items-center justify-center ${
-                    isCurrent
+                    isSelectedInput
                       ? 'bg-[#2E1A0F] text-[#F5DF98] border-[#D4AF37] shadow-xs'
                       : 'bg-[#FDFBF7] text-[#2E1A0F] border-[#C89D54] hover:bg-[#2E1A0F] hover:text-[#F5DF98]'
                   }`}
@@ -12663,8 +12691,17 @@ export default function App() {
                     type="button"
                     onClick={() => {
                       if (foundMember) {
-                        handleSelectActiveMember(foundMember);
-                        setActiveTab('member');
+                        if (isMemberSignedIn && activeMember?.id === foundMember.id) {
+                          setActiveTab('member');
+                        } else {
+                          setSignInPortalRole('member');
+                          setMemberLoginInput(
+                            foundMember.username || foundMember.code || lvlCode
+                          );
+                          setMemberLoginPassword('');
+                          setMemberAuthMode('signin');
+                          setShowSignInModal(true);
+                        }
                       }
                     }}
                     className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition-colors ${
@@ -13221,7 +13258,15 @@ export default function App() {
                         const chosen = distributors.find(
                           (d) => d.id === e.target.value
                         );
-                        if (chosen) handleSelectActiveMember(chosen);
+                        if (chosen && chosen.id !== activeMember.id) {
+                          setSignInPortalRole('member');
+                          setMemberLoginInput(
+                            chosen.username || chosen.code || chosen.email || ''
+                          );
+                          setMemberLoginPassword('');
+                          setMemberAuthMode('signin');
+                          setShowSignInModal(true);
+                        }
                       }}
                       className="w-full px-2.5 py-1.5 text-xs bg-stone-50 border border-zinc-300 rounded-lg"
                     >
@@ -13253,6 +13298,7 @@ export default function App() {
                         onClick={() => {
                           setMemberAuthMode('signin');
                           setIsMemberSignedIn(false);
+                          setMemberLoginPassword('');
                         }}
                         className="flex items-center justify-center gap-1.5 py-2 px-2.5 text-xs font-semibold text-zinc-800 bg-stone-100 border border-zinc-300 rounded-lg hover:bg-zinc-200"
                       >
@@ -15812,9 +15858,15 @@ export default function App() {
                                       </p>
                                       <button
                                         type="button"
-                                        onClick={() =>
-                                          handleSelectActiveMember(tm)
-                                        }
+                                        onClick={() => {
+                                          setSignInPortalRole('member');
+                                          setMemberLoginInput(
+                                            tm.username || tm.code || tm.email || ''
+                                          );
+                                          setMemberLoginPassword('');
+                                          setMemberAuthMode('signin');
+                                          setShowSignInModal(true);
+                                        }}
                                         className="text-[11px] font-sans text-zinc-600 underline underline-offset-4 hover:text-zinc-900"
                                       >
                                         {t.memberSignInAsThisPartner}
