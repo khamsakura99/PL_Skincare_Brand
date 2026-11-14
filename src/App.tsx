@@ -12422,122 +12422,199 @@ export default function App() {
 
       <div
         id="pl-main-app-shell"
-        className="min-h-screen flex flex-col bg-[#FDFBF7] text-zinc-900"
+        className="min-h-screen flex flex-col bg-[#FDFBF7] text-zinc-900 overflow-x-clip"
       >
-        {/* Strict Top Bar Contract: Zone 1 (Brand Emblem & Wordmark) — Zone 2 (5 Single-Line Nav Links) — Zone 3 (1 Primary Action) */}
-      <header className="sticky top-0 z-30 flex items-center justify-between gap-8 px-6 lg:px-10 py-3.5 bg-[#2E1A0F] text-[#FDFBF7] border-b border-[#C89D54]/30 shadow-sm">
-        {/* Zone 1: Official PL SKINCARE Gold Logo & Brand Title */}
-        <div className="inline-flex items-center gap-2.5 shrink-0">
-          <a
-            href="#top"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveTab('storefront');
-            }}
-            className="inline-flex items-center gap-3 text-lg sm:text-xl font-bold tracking-tight text-[#FDFBF7] font-display whitespace-nowrap shrink-0"
-          >
-            <img
-              src={landingContent.brandLogoImage}
-              alt={settings.brandName}
-              referrerPolicy="no-referrer"
-              className="w-9 h-9 rounded-full object-cover border border-[#D4AF37]/60 shrink-0"
-            />
-            <span className="text-[#F5DF98]">{settings.brandName}</span>
-          </a>
-          {isAdminSignedIn && (
-            <label
-              title={
-                lang === 'lo'
-                  ? 'ປ່ຽນໂລໂກ້ແບຣນ (ສະເພາະ Admin)'
-                  : 'Edit Brand Logo (Admin Only)'
-              }
-              className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-[#2E1A0F] bg-[#E5C158] hover:bg-[#F5DF98] rounded-md cursor-pointer shadow-xs whitespace-nowrap"
-            >
-              <Upload className="w-2.5 h-2.5" />
-              <span>{lang === 'lo' ? 'ໂລໂກ້' : 'Logo'}</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleUploadBrandLogoFile}
-                className="hidden"
-              />
-            </label>
-          )}
-        </div>
+        {/* Sticky Global Navigation Shell (Top Brand Bar + Mobile Tab Strip stay pinned while scrolling) */}
+        <div className="sticky top-0 z-30 bg-[#2E1A0F] text-[#FDFBF7] shadow-md">
+          {/* Strict Top Bar Contract: Zone 1 (Brand Emblem & Wordmark) — Zone 2 (5 Single-Line Nav Links) — Zone 3 (1 Primary Action) */}
+          <header className="flex items-center justify-between gap-2 sm:gap-6 lg:gap-8 px-3 sm:px-6 lg:px-10 py-2.5 sm:py-3.5 border-b border-[#C89D54]/30 min-w-0">
+            {/* Zone 1: Official PL SKINCARE Gold Logo & Brand Title */}
+            <div className="inline-flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1 md:flex-initial">
+              <a
+                href="#top"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveTab('storefront');
+                }}
+                className="inline-flex items-center gap-2 sm:gap-3 text-sm sm:text-xl font-bold tracking-tight text-[#FDFBF7] font-display min-w-0"
+              >
+                <img
+                  src={landingContent.brandLogoImage}
+                  alt={settings.brandName}
+                  referrerPolicy="no-referrer"
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border border-[#D4AF37]/60 shrink-0"
+                />
+                <span className="text-[#F5DF98] truncate">
+                  {settings.brandName}
+                </span>
+              </a>
+              {isAdminSignedIn && (
+                <label
+                  title={
+                    lang === 'lo'
+                      ? 'ປ່ຽນໂລໂກ້ແບຣນ (ສະເພາະ Admin)'
+                      : 'Edit Brand Logo (Admin Only)'
+                  }
+                  className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-[#2E1A0F] bg-[#E5C158] hover:bg-[#F5DF98] rounded-md cursor-pointer shadow-xs whitespace-nowrap shrink-0"
+                >
+                  <Upload className="w-2.5 h-2.5" />
+                  <span>{lang === 'lo' ? 'ໂລໂກ້' : 'Logo'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleUploadBrandLogoFile}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
 
-        {/* Zone 2: 5 concise single-line text navigation links */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[#E6D7C3]">
-          <button
-            type="button"
-            onClick={() => setActiveTab('storefront')}
-            className={`py-1 transition-colors whitespace-nowrap shrink-0 border-b-2 ${
-              activeTab === 'storefront'
-                ? 'text-[#F5DF98] border-[#D4AF37] font-semibold'
-                : 'border-transparent hover:text-white hover:border-[#C89D54]/50'
-            }`}
-          >
-            {lang === 'lo' ? 'ໜ້າຫຼັກ & ຜະລິດຕະພັນ' : 'Home & Products'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('member')}
-            className={`py-1 transition-colors whitespace-nowrap shrink-0 border-b-2 ${
-              activeTab === 'member'
-                ? 'text-[#F5DF98] border-[#D4AF37] font-semibold'
-                : 'border-transparent hover:text-white hover:border-[#C89D54]/50'
-            }`}
-          >
-            {t.navMemberPortal}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('inventory')}
-            className={`py-1 transition-colors whitespace-nowrap shrink-0 border-b-2 ${
-              activeTab === 'inventory'
-                ? 'text-[#F5DF98] border-[#D4AF37] font-semibold'
-                : 'border-transparent hover:text-white hover:border-[#C89D54]/50'
-            }`}
-          >
-            {lang === 'lo' ? 'ຈັດການສິນຄ້າ & ໝວດໝູ່' : 'Manage Products & Categories'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('genealogy')}
-            className={`py-1 transition-colors whitespace-nowrap shrink-0 border-b-2 ${
-              activeTab === 'genealogy'
-                ? 'text-[#F5DF98] border-[#D4AF37] font-semibold'
-                : 'border-transparent hover:text-white hover:border-[#C89D54]/50'
-            }`}
-          >
-            {t.navGenealogy}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('admin')}
-            className={`py-1 transition-colors whitespace-nowrap shrink-0 border-b-2 ${
-              activeTab === 'admin'
-                ? 'text-[#F5DF98] border-[#D4AF37] font-semibold'
-                : 'border-transparent hover:text-white hover:border-[#C89D54]/50'
-            }`}
-          >
-            {t.navAdmin}
-          </button>
-        </nav>
+            {/* Zone 2: 5 concise single-line text navigation links */}
+            <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[#E6D7C3]">
+              <button
+                type="button"
+                onClick={() => setActiveTab('storefront')}
+                className={`py-1 transition-colors whitespace-nowrap shrink-0 border-b-2 ${
+                  activeTab === 'storefront'
+                    ? 'text-[#F5DF98] border-[#D4AF37] font-semibold'
+                    : 'border-transparent hover:text-white hover:border-[#C89D54]/50'
+                }`}
+              >
+                {lang === 'lo' ? 'ໜ້າຫຼັກ & ຜະລິດຕະພັນ' : 'Home & Products'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('member')}
+                className={`py-1 transition-colors whitespace-nowrap shrink-0 border-b-2 ${
+                  activeTab === 'member'
+                    ? 'text-[#F5DF98] border-[#D4AF37] font-semibold'
+                    : 'border-transparent hover:text-white hover:border-[#C89D54]/50'
+                }`}
+              >
+                {t.navMemberPortal}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('inventory')}
+                className={`py-1 transition-colors whitespace-nowrap shrink-0 border-b-2 ${
+                  activeTab === 'inventory'
+                    ? 'text-[#F5DF98] border-[#D4AF37] font-semibold'
+                    : 'border-transparent hover:text-white hover:border-[#C89D54]/50'
+                }`}
+              >
+                {lang === 'lo' ? 'ຈັດການສິນຄ້າ & ໝວດໝູ່' : 'Manage Products & Categories'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('genealogy')}
+                className={`py-1 transition-colors whitespace-nowrap shrink-0 border-b-2 ${
+                  activeTab === 'genealogy'
+                    ? 'text-[#F5DF98] border-[#D4AF37] font-semibold'
+                    : 'border-transparent hover:text-white hover:border-[#C89D54]/50'
+                }`}
+              >
+                {t.navGenealogy}
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('admin')}
+                className={`py-1 transition-colors whitespace-nowrap shrink-0 border-b-2 ${
+                  activeTab === 'admin'
+                    ? 'text-[#F5DF98] border-[#D4AF37] font-semibold'
+                    : 'border-transparent hover:text-white hover:border-[#C89D54]/50'
+                }`}
+              >
+                {t.navAdmin}
+              </button>
+            </nav>
 
-        {/* Zone 3: 1 Primary Action — Unified Sign In (Administrator & User Member L1-L5) */}
-        <div className="flex items-center gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={() => setShowSignInModal(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-[#2E1A0F] bg-gradient-to-r from-[#E5C158] to-[#C89D54] rounded-lg hover:from-[#F0D06B] hover:to-[#D4AF37] transition-all whitespace-nowrap shrink-0 shadow-xs"
+            {/* Zone 3: 1 Primary Action — Unified Sign In (Administrator & User Member L1-L5) */}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowSignInModal(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold text-[#2E1A0F] bg-gradient-to-r from-[#E5C158] to-[#C89D54] rounded-lg hover:from-[#F0D06B] hover:to-[#D4AF37] transition-all whitespace-nowrap shrink-0 shadow-xs"
+              >
+                <UserIcon className="w-3.5 h-3.5 shrink-0" />
+                <span className="sm:hidden">
+                  {isAdminSignedIn
+                    ? 'Admin'
+                    : isMemberSignedIn && activeMember
+                    ? activeMember.username || activeMember.code
+                    : lang === 'lo'
+                    ? 'ເຂົ້າລະບົບ'
+                    : 'Sign In'}
+                </span>
+                <span className="hidden sm:inline">
+                  {lang === 'lo'
+                    ? 'ເຂົ້າສູ່ລະບົບ (Admin / ສະມາຊິກ L1–L5)'
+                    : 'Sign In (Admin / Member L1–L5)'}
+                </span>
+              </button>
+            </div>
+          </header>
+
+          {/* Mobile Sticky 5-Tab Workspace Navigation Bar (All 5 Tabs Always Visible Without Clipping) */}
+          <nav
+            aria-label="Mobile Navigation"
+            className="grid grid-cols-5 md:hidden gap-1 px-2 py-1.5 bg-[#3B2314] border-b border-[#C89D54]/30"
           >
-            <UserIcon className="w-3.5 h-3.5" />
-            {lang === 'lo'
-              ? 'ເຂົ້າສູ່ລະບົບ (Admin / ສະມາຊິກ L1–L5)'
-              : 'Sign In (Admin / Member L1–L5)'}
-          </button>
+            {(
+              [
+                [
+                  'storefront',
+                  lang === 'lo' ? 'ໜ້າຫຼັກ' : 'Shop',
+                  lang === 'lo' ? 'ໜ້າຫຼັກ & ຮ້ານຄ້າ' : 'Home & Shop',
+                  ShoppingBag,
+                ],
+                [
+                  'member',
+                  lang === 'lo' ? 'ສະມາຊິກ' : 'Member',
+                  t.navMemberPortal,
+                  UserIcon,
+                ],
+                [
+                  'inventory',
+                  lang === 'lo' ? 'ສິນຄ້າ' : 'Products',
+                  lang === 'lo' ? 'ສິນຄ້າ & ໝວດໝູ່' : 'Products & Categories',
+                  Package,
+                ],
+                [
+                  'genealogy',
+                  lang === 'lo' ? 'ຜັງ 4 ຊັ້ນ' : 'Tree',
+                  t.navGenealogy,
+                  Users,
+                ],
+                [
+                  'admin',
+                  lang === 'lo' ? 'Admin' : 'Admin',
+                  t.navAdmin,
+                  Shield,
+                ],
+              ] as [WorkspaceTab, string, string, React.ElementType][]
+            ).map(([tabKey, shortLabel, fullLabel, TabIcon]) => {
+              const isActive = activeTab === tabKey;
+              return (
+                <button
+                  key={tabKey}
+                  type="button"
+                  title={fullLabel}
+                  onClick={() => setActiveTab(tabKey)}
+                  className={`flex flex-col items-center justify-center gap-0.5 px-1 py-1.5 rounded-lg transition-colors min-w-0 ${
+                    isActive
+                      ? 'bg-[#D4AF37] text-[#2E1A0F] font-bold shadow-xs'
+                      : 'text-[#E6D7C3] hover:text-white hover:bg-white/5 font-medium'
+                  }`}
+                >
+                  <TabIcon className="w-3.5 h-3.5 shrink-0" />
+                  <span className="text-[10px] leading-tight truncate w-full text-center">
+                    {shortLabel}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
         </div>
-      </header>
 
       {/* Global Sign-In Modal (User Member L1-L5 & Administrator) */}
       {showSignInModal && (
@@ -12556,40 +12633,11 @@ export default function App() {
         </div>
       )}
 
-      {/* Mobile Workspace Navigation Bar */}
-      <div className="flex md:hidden items-center gap-2 overflow-x-auto px-4 py-2.5 bg-[#3B2314] border-b border-[#C89D54]/30">
-        {(
-          [
-            ['storefront', lang === 'lo' ? 'ໜ້າຫຼັກ & ຮ້ານຄ້າ' : 'Home & Shop'],
-            ['member', t.navMemberPortal],
-            [
-              'inventory',
-              lang === 'lo' ? 'ສິນຄ້າ & ໝວດໝູ່' : 'Products & Categories',
-            ],
-            ['genealogy', t.navGenealogy],
-            ['admin', t.navAdmin],
-          ] as [WorkspaceTab, string][]
-        ).map(([tabKey, label]) => (
-          <button
-            key={tabKey}
-            type="button"
-            onClick={() => setActiveTab(tabKey)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap shrink-0 transition-colors ${
-              activeTab === tabKey
-                ? 'bg-[#D4AF37] text-[#2E1A0F] font-bold'
-                : 'text-[#E6D7C3] hover:text-white'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
       {/* Contextual Member (L1-L5) & Admin Session Quick Bar, Currency & Language Switcher */}
-      <div className="bg-white border-b border-zinc-200 px-6 lg:px-10 py-3">
-        <div className="max-w-[1360px] mx-auto flex flex-wrap items-center justify-between gap-4 text-xs text-zinc-600">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-zinc-900">
+      <div className="bg-white border-b border-zinc-200 px-3 sm:px-6 lg:px-10 py-2.5 sm:py-3">
+        <div className="max-w-[1360px] mx-auto flex flex-wrap items-center justify-between gap-3 sm:gap-4 text-xs text-zinc-600">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <span className="font-semibold text-zinc-900 break-words">
               {t.activeMemberLabel}:{' '}
               {activeMember
                 ? localizePersonName(activeMember.fullName, lang)
@@ -12598,7 +12646,7 @@ export default function App() {
             </span>
 
             {/* Quick 1-Click Switcher for L1, L2, L3, L4, L5 & Admin */}
-            <div className="inline-flex items-center gap-1 bg-[#F7F1E5] p-1 rounded-lg border border-[#C89D54]/50">
+            <div className="inline-flex flex-wrap items-center gap-1 bg-[#F7F1E5] p-1 rounded-lg border border-[#C89D54]/50 max-w-full">
               {(['L1', 'L2', 'L3', 'L4', 'L5'] as const).map((lvlCode) => {
                 const foundMember = distributors.find(
                   (d) =>
@@ -12735,7 +12783,7 @@ export default function App() {
       {/* Main Content Container */}
       <main
         id="top"
-        className="flex-1 max-w-[1360px] w-full mx-auto px-6 lg:px-10 py-8 space-y-10"
+        className="flex-1 max-w-[1360px] w-full mx-auto px-3.5 sm:px-6 lg:px-10 py-5 sm:py-8 space-y-8 sm:space-y-10"
       >
         {/* ===================================================================
             TAB 1 (DEFAULT): CLASSIC USER MEMBER DASHBOARD CONTROL PANEL
@@ -13086,11 +13134,12 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Classic Vertical Menu — Clicking any item shows ONLY that module */}
-                  <nav className="space-y-1">
-                    <p className="px-2 pb-1 text-[11px] font-mono uppercase tracking-wider text-zinc-400">
+                  {/* Classic Menu — 2-col compact grid on mobile, Vertical Sidebar on desktop */}
+                  <nav className="space-y-1.5">
+                    <p className="px-1 pb-1 text-[11px] font-mono uppercase tracking-wider text-zinc-400">
                       {lang === 'lo' ? 'ເມນູຈັດການສະມາຊິກ' : 'MEMBER CONTROL MENU'}
                     </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-1.5">
                     {(
                       [
                         [
@@ -13148,16 +13197,17 @@ export default function App() {
                         key={subKey}
                         type="button"
                         onClick={() => setMemberSubPanel(subKey)}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-xs rounded-lg transition-colors text-left ${
+                        className={`w-full flex items-center gap-2 px-2.5 sm:px-3 py-2 sm:py-2.5 text-[11px] sm:text-xs rounded-lg transition-colors text-left ${
                           memberSubPanel === subKey
                             ? 'bg-zinc-900 text-white font-semibold'
-                            : 'text-zinc-700 hover:bg-stone-100 font-medium'
+                            : 'text-zinc-700 hover:bg-stone-100 bg-stone-50/70 lg:bg-transparent font-medium'
                         }`}
                       >
-                        <IconComp className="w-4 h-4 shrink-0" />
+                        <IconComp className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                         <span className="truncate">{label}</span>
                       </button>
                     ))}
+                    </div>
                   </nav>
 
                   {/* Account Switcher & Sign Out / Register Button */}
@@ -16530,8 +16580,8 @@ export default function App() {
 
               {/* Sub-Navigation Tabs Inside Master Backend Control Panel (Administrator Signed-In Only) */}
               {isAdminSignedIn && (
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex flex-wrap items-center gap-1 p-1 bg-zinc-100 rounded-lg">
+                <div className="flex flex-wrap items-center justify-between gap-4 max-w-full">
+                  <div className="flex flex-wrap items-center gap-1 p-1 bg-zinc-100 rounded-lg max-w-full">
                     {(
                       [
                         ['overview', t.subTabOverview],
@@ -16596,7 +16646,7 @@ export default function App() {
                         key={panelKey}
                         type="button"
                         onClick={() => setAdminSubPanel(panelKey)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
+                        className={`px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-medium rounded-md transition-colors text-left leading-snug max-w-full sm:whitespace-nowrap ${
                           adminSubPanel === panelKey
                             ? 'bg-[#2E1A0F] text-[#F5DF98] shadow-xs font-semibold'
                             : 'text-zinc-600 hover:text-zinc-900'
@@ -16608,13 +16658,13 @@ export default function App() {
                   </div>
 
                   {/* Global One-Click Executive Actions */}
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 max-w-full">
                     <button
                       type="button"
                       onClick={() => setAdminSubPanel('company_profile')}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#F5DF98] bg-[#2E1A0F] border border-[#C89D54] hover:bg-[#3D2314] rounded-lg transition-colors whitespace-nowrap shrink-0 shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 text-xs font-bold text-[#F5DF98] bg-[#2E1A0F] border border-[#C89D54] hover:bg-[#3D2314] rounded-lg transition-colors text-left leading-snug max-w-full sm:whitespace-nowrap shadow-xs"
                     >
-                      <CreditCard className="w-3.5 h-3.5 text-[#E5C158]" />
+                      <CreditCard className="w-3.5 h-3.5 text-[#E5C158] shrink-0" />
                       {lang === 'lo'
                         ? 'ໂປຣໄຟລ໌ບໍລິສັດ & ອອກແບບນາມບັດ'
                         : 'Company Profile & Business Card'}
@@ -16622,9 +16672,9 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => setAdminSubPanel('marketing_brochure')}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#2E1A0F] bg-gradient-to-r from-[#F5DF98] via-[#E5C158] to-[#C89D54] hover:from-[#FFF0B8] hover:to-[#D4AF37] rounded-lg transition-colors whitespace-nowrap shrink-0 shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 text-xs font-bold text-[#2E1A0F] bg-gradient-to-r from-[#F5DF98] via-[#E5C158] to-[#C89D54] hover:from-[#FFF0B8] hover:to-[#D4AF37] rounded-lg transition-colors text-left leading-snug max-w-full sm:whitespace-nowrap shadow-xs"
                     >
-                      <FileText className="w-3.5 h-3.5" />
+                      <FileText className="w-3.5 h-3.5 shrink-0" />
                       {lang === 'lo'
                         ? 'ແຜນການຕະຫຼາດ & ໂບຣຊัวສິນຄ້າ (Edit/Print)'
                         : 'Marketing Plan & Product Brochures'}
@@ -16632,9 +16682,9 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => handleOpenCreateShipping()}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#2E1A0F] bg-gradient-to-r from-[#E5C158] to-[#C89D54] hover:from-[#F0D06B] hover:to-[#D4AF37] rounded-lg transition-colors whitespace-nowrap shrink-0 shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 text-xs font-bold text-[#2E1A0F] bg-gradient-to-r from-[#E5C158] to-[#C89D54] hover:from-[#F0D06B] hover:to-[#D4AF37] rounded-lg transition-colors text-left leading-snug max-w-full sm:whitespace-nowrap shadow-xs"
                     >
-                      <Truck className="w-3.5 h-3.5" />
+                      <Truck className="w-3.5 h-3.5 shrink-0" />
                       {lang === 'lo'
                         ? '+ ເພີ່ມຂົນສົ່ງ (Anousith / HAL)'
                         : '+ Add Shipping (Anousith / HAL)'}
@@ -16642,9 +16692,9 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => handleOpenCreateBankQr()}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#2E1A0F] bg-[#F7F1E5] border border-[#C89D54] hover:bg-[#EFE5D5] rounded-lg transition-colors whitespace-nowrap shrink-0 shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 text-xs font-bold text-[#2E1A0F] bg-[#F7F1E5] border border-[#C89D54] hover:bg-[#EFE5D5] rounded-lg transition-colors text-left leading-snug max-w-full sm:whitespace-nowrap shadow-xs"
                     >
-                      <QrCode className="w-3.5 h-3.5" />
+                      <QrCode className="w-3.5 h-3.5 shrink-0" />
                       {lang === 'lo'
                         ? '+ ເພີ່ມທະນາຄານ & QR Code'
                         : '+ Add Bank Payment & QR'}
@@ -16652,9 +16702,9 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => handleOpenCreatePackage(1)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#2E1A0F] bg-[#F7F1E5] border border-[#C89D54] hover:bg-[#EFE5D5] rounded-lg transition-colors whitespace-nowrap shrink-0 shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 text-xs font-bold text-[#2E1A0F] bg-[#F7F1E5] border border-[#C89D54] hover:bg-[#EFE5D5] rounded-lg transition-colors text-left leading-snug max-w-full sm:whitespace-nowrap shadow-xs"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3.5 h-3.5 shrink-0" />
                       {lang === 'lo'
                         ? '+ ເພີ່ມແພັກເກັດ L1–L5'
                         : '+ Add Package (L1–L5)'}
@@ -16662,9 +16712,9 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => handleOpenCreateMemberAdmin(1)}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#F5DF98] bg-[#2E1A0F] hover:bg-[#3D2314] rounded-lg transition-colors whitespace-nowrap shrink-0 shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 text-xs font-bold text-[#F5DF98] bg-[#2E1A0F] hover:bg-[#3D2314] rounded-lg transition-colors text-left leading-snug max-w-full sm:whitespace-nowrap shadow-xs"
                     >
-                      <UserPlus className="w-3.5 h-3.5" />
+                      <UserPlus className="w-3.5 h-3.5 shrink-0" />
                       {lang === 'lo'
                         ? '+ ເພີ່ມສະມາຊິກ L1–L5'
                         : '+ Add Member (L1–L5)'}
@@ -16672,9 +16722,9 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => handleOpenCreateProduct(categoryFilter)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#2E1A0F] bg-[#F7F1E5] border border-[#C89D54] hover:bg-[#EFE5D5] rounded-lg transition-colors whitespace-nowrap shrink-0"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#2E1A0F] bg-[#F7F1E5] border border-[#C89D54] hover:bg-[#EFE5D5] rounded-lg transition-colors text-left leading-snug max-w-full sm:whitespace-nowrap"
                     >
-                      <Plus className="w-3.5 h-3.5 text-[#8B6528]" />
+                      <Plus className="w-3.5 h-3.5 text-[#8B6528] shrink-0" />
                       {lang === 'lo'
                         ? '+ ເພີ່ມສິນຄ້າເຂົ້າສາງ'
                         : '+ Add Stock Product'}
@@ -16682,9 +16732,9 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => handleExportAllMembersExcel('xls')}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors whitespace-nowrap shrink-0 shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg transition-colors text-left leading-snug max-w-full sm:whitespace-nowrap shadow-xs"
                     >
-                      <Download className="w-3.5 h-3.5" />
+                      <Download className="w-3.5 h-3.5 shrink-0" />
                       {lang === 'lo'
                         ? `📊 ດາວໂຫຼດ Excel ສະມາຊິກທັງໝົດ (${distributors.length})`
                         : `📊 Export All Members Excel (${distributors.length})`}
@@ -16692,9 +16742,9 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => handleExportAllPaymentBillsExcel('xls')}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors whitespace-nowrap shrink-0 shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 text-xs font-bold text-white bg-blue-700 hover:bg-blue-800 rounded-lg transition-colors text-left leading-snug max-w-full sm:whitespace-nowrap shadow-xs"
                     >
-                      <Download className="w-3.5 h-3.5" />
+                      <Download className="w-3.5 h-3.5 shrink-0" />
                       {lang === 'lo'
                         ? `🧾 ດາວໂຫຼດ Excel ໃບບິນຊຳລະເງິນ (${orders.length})`
                         : `🧾 Export Payment Bills Excel (${orders.length})`}
@@ -16702,9 +16752,9 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleExportCombinedMasterExcel}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#2E1A0F] bg-gradient-to-r from-[#F5DF98] via-[#E5C158] to-[#C89D54] hover:from-[#FFF0B8] hover:to-[#D4AF37] rounded-lg transition-colors whitespace-nowrap shrink-0 shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 text-xs font-bold text-[#2E1A0F] bg-gradient-to-r from-[#F5DF98] via-[#E5C158] to-[#C89D54] hover:from-[#FFF0B8] hover:to-[#D4AF37] rounded-lg transition-colors text-left leading-snug max-w-full sm:whitespace-nowrap shadow-xs"
                     >
-                      <FileText className="w-3.5 h-3.5" />
+                      <FileText className="w-3.5 h-3.5 shrink-0" />
                       {lang === 'lo'
                         ? '📑 ດາວໂຫຼດໄຟລ໌ລວມ Excel (ສະມາຊິກ + ໃບບິນ)'
                         : '📑 Export Master Combined Excel'}
@@ -16712,9 +16762,9 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleBatchDisburseAllPending}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg transition-colors whitespace-nowrap shrink-0"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg transition-colors text-left leading-snug max-w-full sm:whitespace-nowrap"
                     >
-                      <Check className="w-3.5 h-3.5" />
+                      <Check className="w-3.5 h-3.5 shrink-0" />
                       {t.btnDisburseAllPending} (
                       {money(kpiMetrics.pendingPayoutSum)})
                     </button>
@@ -26428,10 +26478,10 @@ export default function App() {
 
                   {/* Hero CTAs + Key Brand Pricing Strip */}
                   <div className="space-y-5 pt-4 border-t border-[#C89D54]/30">
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
                       <a
                         href="#pl-product-collection"
-                        className="px-5 py-3 text-xs sm:text-sm font-bold text-[#2E1A0F] bg-gradient-to-r from-[#F0D06B] via-[#D4AF37] to-[#C89D54] hover:from-[#F5DF98] hover:to-[#D4AF37] rounded-xl transition-all shadow-sm whitespace-nowrap shrink-0"
+                        className="px-4 sm:px-5 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-[#2E1A0F] bg-gradient-to-r from-[#F0D06B] via-[#D4AF37] to-[#C89D54] hover:from-[#F5DF98] hover:to-[#D4AF37] rounded-xl transition-all shadow-sm text-center"
                       >
                         {lang === 'lo'
                           ? 'ເລືອກຊື້ສິນຄ້າ PL Skincare'
@@ -26443,7 +26493,7 @@ export default function App() {
                           setActiveTab('member');
                           setMemberSubPanel('package');
                         }}
-                        className="px-4 py-3 text-xs sm:text-sm font-semibold text-[#FDFBF7] bg-[#3B2314]/90 border border-[#D4AF37]/60 hover:bg-[#2E1A0F] rounded-xl transition-colors whitespace-nowrap shrink-0"
+                        className="px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-[#FDFBF7] bg-[#3B2314]/90 border border-[#D4AF37]/60 hover:bg-[#2E1A0F] rounded-xl transition-colors text-center"
                       >
                         {lang === 'lo'
                           ? 'ເປີດບິນຕົວແທນ 4 ແພັກເກັດ'
@@ -26453,7 +26503,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => handleOpenCreateProduct(categoryFilter)}
-                          className="px-3.5 py-3 text-xs font-semibold text-[#F5DF98] hover:text-white underline underline-offset-4 whitespace-nowrap shrink-0"
+                          className="px-3 py-2 text-xs font-semibold text-[#F5DF98] hover:text-white underline underline-offset-4"
                         >
                           {lang === 'lo'
                             ? '+ ເພີ່ມ / ແກ້ໄຂສິນຄ້າ (Admin)'
@@ -26462,28 +26512,28 @@ export default function App() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3 pt-1">
-                      <div className="p-3 rounded-xl bg-[#24130A]/70 border border-[#C89D54]/25">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 pt-1">
+                      <div className="p-2.5 sm:p-3 rounded-xl bg-[#24130A]/70 border border-[#C89D54]/25 flex sm:block items-center justify-between gap-2">
                         <span className="text-[11px] text-[#D7C3AA] block">
                           {lang === 'lo' ? 'ລາຄາສະມາຊິກເລີ່ມຕົ້ນ' : 'Member Price From'}
                         </span>
-                        <strong className="text-sm sm:text-base font-mono tabular-nums text-[#F5DF98] mt-0.5 block">
+                        <strong className="text-sm sm:text-base font-mono tabular-nums text-[#F5DF98] sm:mt-0.5 block">
                           {money(650)}
                         </strong>
                       </div>
-                      <div className="p-3 rounded-xl bg-[#24130A]/70 border border-[#C89D54]/25">
+                      <div className="p-2.5 sm:p-3 rounded-xl bg-[#24130A]/70 border border-[#C89D54]/25 flex sm:block items-center justify-between gap-2">
                         <span className="text-[11px] text-[#D7C3AA] block">
                           {lang === 'lo' ? 'ຄ່າຄອມມິດຊັ່ນສູງສຸດ 4 ຊັ້ນ' : 'Max 4-Level Payout'}
                         </span>
-                        <strong className="text-sm sm:text-base font-mono tabular-nums text-[#F5DF98] mt-0.5 block">
+                        <strong className="text-sm sm:text-base font-mono tabular-nums text-[#F5DF98] sm:mt-0.5 block">
                           {kpiMetrics.totalPlanRate}%
                         </strong>
                       </div>
-                      <div className="p-3 rounded-xl bg-[#24130A]/70 border border-[#C89D54]/25">
+                      <div className="p-2.5 sm:p-3 rounded-xl bg-[#24130A]/70 border border-[#C89D54]/25 flex sm:block items-center justify-between gap-2">
                         <span className="text-[11px] text-[#D7C3AA] block">
                           {lang === 'lo' ? 'ສິນຄ້າພ້ອມສົ່ງໃນສາງ' : 'In-Stock Units'}
                         </span>
-                        <strong className="text-sm sm:text-base font-mono tabular-nums text-[#F5DF98] mt-0.5 block">
+                        <strong className="text-sm sm:text-base font-mono tabular-nums text-[#F5DF98] sm:mt-0.5 block">
                           {kpiMetrics.totalStockUnits.toLocaleString()}{' '}
                           {t.unitsLabel}
                         </strong>
@@ -26527,7 +26577,7 @@ export default function App() {
                   </div>
 
                   {/* Interactive Thumbnail Strip of Uploaded PL Skincare Photos (Admin Can Edit Any Slot) */}
-                  <div className="grid grid-cols-6 gap-2 mt-3">
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-3">
                     {landingContent.heroGalleryImages.map((thumbUrl, thumbIdx) => {
                       const isCurrent = activeHeroGalleryImg === thumbUrl;
                       return (
@@ -26743,9 +26793,9 @@ export default function App() {
                           )}
                         </div>
 
-                        <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                        <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-4">
                           <div>
-                            <div className="flex items-center gap-1.5 text-xs text-[#8B6528]">
+                            <div className="flex flex-wrap items-center gap-1.5 text-xs text-[#8B6528]">
                               <span className="font-medium">
                                 {localizeCategory(product.category, lang)}
                               </span>
@@ -26840,44 +26890,46 @@ export default function App() {
               </div>
 
               {/* Right 5 Columns: Sticky Contiguous Order & 4-Level Unilevel Commission Terminal */}
-              <div className="lg:col-span-5 bg-white border-2 border-[#C89D54]/50 rounded-2xl p-6 lg:sticky lg:top-24 space-y-6 shadow-sm">
+              <div className="lg:col-span-5 bg-white border-2 border-[#C89D54]/50 rounded-2xl p-4 sm:p-6 lg:sticky lg:top-24 space-y-5 sm:space-y-6 shadow-sm">
                 <div className="border-b border-stone-200 pb-4">
                   <p className="text-xs font-semibold text-[#8B6528]">
                     {t.posKicker}
                   </p>
-                  <h2 className="mt-1 text-xl font-bold text-[#2E1A0F] font-display">
+                  <h2 className="mt-1 text-lg sm:text-xl font-bold text-[#2E1A0F] font-display">
                     {t.posTitle}
                   </h2>
                 </div>
 
                 {selectedProduct && (
                   <form onSubmit={handlePlaceOrder} className="space-y-5">
-                    <div className="p-4 bg-[#F7F1E8] rounded-xl border border-[#C89D54]/40 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
+                    <div className="p-3.5 sm:p-4 bg-[#F7F1E8] rounded-xl border border-[#C89D54]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                      <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
                         <img
                           src={selectedProduct.imageUrl}
                           alt={localizeProductName(selectedProduct, lang)}
                           referrerPolicy="no-referrer"
                           className="w-12 h-12 rounded-lg object-cover border border-[#C89D54] shrink-0"
                         />
-                        <div>
-                          <p className="text-xs text-zinc-500 font-mono tabular-nums">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs text-zinc-500 font-mono tabular-nums break-words">
                             {selectedProduct.sku} · {selectedProduct.stock}{' '}
                             {t.unitsLabel}
                           </p>
-                          <p className="text-sm font-bold text-[#2E1A0F] mt-0.5">
+                          <p className="text-sm font-bold text-[#2E1A0F] mt-0.5 break-words leading-snug">
                             {localizeProductName(selectedProduct, lang)}
                           </p>
                         </div>
                       </div>
-                      <div className="text-right font-mono tabular-nums shrink-0">
-                        <p className="text-sm font-bold text-[#2E1A0F]">
-                          {money(unitPrice)}
-                        </p>
-                        <p className="text-[10px] text-[#6B4423]">
-                          {lang === 'lo' ? 'ບໍລິສັດຮັບເຕັມ:' : 'Company Full:'}{' '}
-                          {money(selectedProduct.memberPrice)}
-                        </p>
+                      <div className="flex sm:block items-baseline justify-between gap-2 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-[#C89D54]/25 sm:text-right font-mono tabular-nums shrink-0">
+                        <div>
+                          <p className="text-sm font-bold text-[#2E1A0F]">
+                            {money(unitPrice)}
+                          </p>
+                          <p className="text-[10px] text-[#6B4423]">
+                            {lang === 'lo' ? 'ບໍລິສັດຮັບເຕັມ:' : 'Company Full:'}{' '}
+                            {money(selectedProduct.memberPrice)}
+                          </p>
+                        </div>
                         <p className="text-[11px] text-emerald-800 font-semibold">
                           +{kpiMetrics.totalPlanRate}% Comm: +
                           {money(
@@ -26895,11 +26947,11 @@ export default function App() {
                       <label className="block text-xs font-semibold text-[#3B2314] mb-1.5">
                         {t.lblPricingTier}
                       </label>
-                      <div className="grid grid-cols-2 gap-1 p-1 bg-[#F4ECE1] rounded-lg">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-1 bg-[#F4ECE1] rounded-lg">
                         <button
                           type="button"
                           onClick={() => setOrderType('retail')}
-                          className={`py-2 px-3 text-xs font-semibold rounded-md transition-colors whitespace-nowrap shrink-0 ${
+                          className={`py-2 px-3 text-xs font-semibold rounded-md transition-colors text-center leading-snug break-words ${
                             orderType === 'retail'
                               ? 'bg-[#2E1A0F] text-[#F5DF98] shadow-xs'
                               : 'text-[#4E3220] hover:text-[#2E1A0F]'
@@ -26918,7 +26970,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setOrderType('member')}
-                          className={`py-2 px-3 text-xs font-semibold rounded-md transition-colors whitespace-nowrap shrink-0 ${
+                          className={`py-2 px-3 text-xs font-semibold rounded-md transition-colors text-center leading-snug break-words ${
                             orderType === 'member'
                               ? 'bg-[#2E1A0F] text-[#F5DF98] shadow-xs'
                               : 'text-[#4E3220] hover:text-[#2E1A0F]'
@@ -27032,7 +27084,7 @@ export default function App() {
                             )}
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {shippingMethods.map((sm) => (
                               <button
                                 key={sm.id}
@@ -27093,9 +27145,9 @@ export default function App() {
                         {previewUnilevelSplit.map((split) => (
                           <div
                             key={split.unilevelTier}
-                            className="flex items-center justify-between text-xs py-1.5 px-3 bg-[#F7F1E8] rounded-md"
+                            className="flex items-center justify-between gap-2 text-xs py-1.5 px-3 bg-[#F7F1E8] rounded-md"
                           >
-                            <div>
+                            <div className="min-w-0">
                               <span className="font-mono tabular-nums font-semibold text-[#2E1A0F]">
                                 {t.levelWord} {split.unilevelTier} (
                                 {split.percentageRate}%)
@@ -27106,14 +27158,14 @@ export default function App() {
                               >
                                 ·
                               </span>
-                              <span className="text-zinc-800 font-medium">
+                              <span className="text-zinc-800 font-medium break-words">
                                 {localizePersonName(
                                   split.beneficiary.fullName,
                                   lang
                                 )}
                               </span>
                             </div>
-                            <span className="font-mono tabular-nums font-semibold text-emerald-800">
+                            <span className="font-mono tabular-nums font-semibold text-emerald-800 shrink-0">
                               +{money(split.commissionAmount)}
                             </span>
                           </div>
@@ -27181,7 +27233,7 @@ export default function App() {
                         disabled={
                           isSubmittingOrder || selectedProduct.stock < 1
                         }
-                        className="w-full py-3.5 px-4 text-sm font-bold text-[#2E1A0F] bg-gradient-to-r from-[#E5C158] to-[#C89D54] hover:from-[#F0D06B] hover:to-[#D4AF37] rounded-xl disabled:opacity-50 transition-all whitespace-nowrap shrink-0 shadow-sm cursor-pointer"
+                        className="w-full py-3.5 px-4 text-sm font-bold text-[#2E1A0F] bg-gradient-to-r from-[#E5C158] to-[#C89D54] hover:from-[#F0D06B] hover:to-[#D4AF37] rounded-xl disabled:opacity-50 transition-all text-center leading-snug shadow-sm cursor-pointer"
                       >
                         {isSubmittingOrder
                           ? lang === 'lo'
@@ -27411,8 +27463,8 @@ export default function App() {
                 </h1>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2.5">
-                <div className="flex items-center gap-1 p-1 bg-[#F4ECE1] rounded-lg">
+              <div className="flex flex-wrap items-center gap-2.5 max-w-full">
+                <div className="flex flex-wrap items-center gap-1 p-1 bg-[#F4ECE1] rounded-lg max-w-full">
                   <button
                     type="button"
                     onClick={() => setInventorySubView('stock')}
@@ -27960,7 +28012,7 @@ export default function App() {
                 </h1>
               </div>
 
-              <div className="flex items-center gap-1 p-1 bg-zinc-100 rounded-lg">
+              <div className="flex flex-wrap items-center gap-1 p-1 bg-zinc-100 rounded-lg max-w-full">
                 {(
                   [
                     ['all', t.allFilter],
@@ -30816,7 +30868,7 @@ export default function App() {
       </main>
 
       {/* Quiet Editorial Footer */}
-      <footer className="mt-auto border-t border-zinc-200 bg-white px-6 lg:px-10 py-5">
+      <footer className="mt-auto border-t border-zinc-200 bg-white px-4 sm:px-6 lg:px-10 py-5">
         <div className="max-w-[1360px] mx-auto flex flex-wrap items-center justify-between gap-4 text-xs text-zinc-500">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="font-semibold text-zinc-800">
@@ -30838,7 +30890,7 @@ export default function App() {
             <span aria-hidden="true">·</span>
             <span>{t.footerSummary}</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <button
               type="button"
               onClick={() => setActiveTab('member')}
@@ -30880,15 +30932,15 @@ export default function App() {
 
       {/* Floating Toast Notification Banner (Always Visible in Viewport) */}
       {statusBanner && (
-        <div className="no-print fixed bottom-5 right-5 z-50 max-w-md bg-[#2E1A0F] text-[#F5DF98] border-2 border-[#E5C158] rounded-2xl px-4 py-3 shadow-2xl flex items-center gap-3">
+        <div className="no-print fixed bottom-3 left-3 right-3 sm:left-auto sm:bottom-5 sm:right-5 z-50 sm:max-w-md bg-[#2E1A0F] text-[#F5DF98] border-2 border-[#E5C158] rounded-2xl px-4 py-3 shadow-2xl flex items-center gap-3">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-          <div className="text-xs font-semibold leading-snug flex-1">
+          <div className="text-xs font-semibold leading-snug flex-1 min-w-0 break-words">
             {statusBanner}
           </div>
           <button
             type="button"
             onClick={() => setStatusBanner(null)}
-            className="text-[#E5C158] hover:text-white text-xs font-bold px-1.5 py-0.5 cursor-pointer"
+            className="text-[#E5C158] hover:text-white text-xs font-bold px-1.5 py-0.5 cursor-pointer shrink-0"
           >
             ✕
           </button>
