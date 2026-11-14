@@ -713,9 +713,9 @@ export default function App() {
     retailPriceLak: 350000,
     memberPriceLak: 350000,
     commissionNoteLo:
-      'ລາຄາ L1: 350,000 ₭/1 (ຈຳນວນ 1–50) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 10% · L2 6% · L3 3% · L4 1%',
+      'ລາຄາ L1: 350,000 ₭/1 (ຈຳນວນ 1–50) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 15% · L2 10% · L3 7% · L4 5%',
     commissionNoteEn:
-      'L1 Price: 350,000 ₭/1 (Qty 1–50) · 4-Level Monthly Commission: L1 10% · L2 6% · L3 3% · L4 1%',
+      'L1 Price: 350,000 ₭/1 (Qty 1–50) · 4-Level Monthly Commission: L1 15% · L2 10% · L3 7% · L4 5%',
     highlightsLo: '',
     highlightsEn: '',
     ingredientsLo: '',
@@ -853,7 +853,7 @@ export default function App() {
     titleEn:
       'PL Skincare Official All User Members (L1–L5) & Daily Order Payment Bills Report',
     preparedBy: 'Soukyathaichanthaly (ADMIN-FOUNDER)',
-    note: 'ຄອມມິດຊັ່ນ 4 ຊັ້ນ: L1=10%, L2=6%, L3=4%, L4=2% | ຂົນສົ່ງທາງການຈັດສົ່ງດ່ວນທົ່ວປະເທດ 1–2 ມື້ (L1–L5)',
+    note: 'ຄອມມິດຊັ່ນ 4 ຊັ້ນ: L1=15%, L2=10%, L3=7%, L4=5% | ຂົນສົ່ງທາງການຈັດສົ່ງດ່ວນທົ່ວປະເທດ 1–2 ມື້ (L1–L5)',
   });
   const [dailyReportDateMode, setDailyReportDateMode] = useState<
     'all' | 'today' | 'single_date' | 'date_range'
@@ -3112,23 +3112,50 @@ export default function App() {
           : item
       )
     );
-    // Auto-upgrade any legacy 15/8/5/3 (31%) or 10/6/4/2 (22%) commission rates to the recommended 10/6/3/1 (20%) Unilevel rates tailored to L1-L4 package prices
+    // Auto-upgrade any prior default commission rates (15/8/5/3, 10/6/4/2, 10/6/3/1, 10/5/2/1) to the official L1 15% / L2 10% / L3 7% / L4 5% (37%) Unilevel rates
     setSettings((prev) =>
       (prev.level1Rate === 15 && prev.level2Rate === 8) ||
       (prev.level1Rate === 10 &&
         prev.level2Rate === 6 &&
         prev.level3Rate === 4 &&
-        prev.level4Rate === 2)
+        prev.level4Rate === 2) ||
+      (prev.level1Rate === 10 &&
+        prev.level2Rate === 6 &&
+        prev.level3Rate === 3 &&
+        prev.level4Rate === 1) ||
+      (prev.level1Rate === 10 &&
+        prev.level2Rate === 5 &&
+        prev.level3Rate === 2 &&
+        prev.level4Rate === 1)
         ? {
             ...prev,
             brandTagline:
-              'PL Skincare Brand · 4 ແພັກເກັດ 4 ຊັ້ນ · ລະບົບຄິດໄລ່ເງິນຄ່າຄອມມິດຊັ່ນ 4 ຊັ້ນ (10% / 6% / 3% / 1%)',
-            level1Rate: 10,
-            level2Rate: 6,
-            level3Rate: 3,
-            level4Rate: 1,
+              'PL Skincare Brand · 4 ແພັກເກັດ 4 ຊັ້ນ · ລະບົບຄິດໄລ່ເງິນຄ່າຄອມມິດຊັ່ນ 4 ຊັ້ນ (15% / 10% / 7% / 5%)',
+            level1Rate: 15,
+            level2Rate: 10,
+            level3Rate: 7,
+            level4Rate: 5,
           }
         : prev
+    );
+    // Auto-upgrade cached product brochures commission notes from legacy 10/6/3/1 or 10/6/4/2 to L1 15% · L2 10% · L3 7% · L4 5%
+    setProductBrochures((prev) =>
+      prev.map((item) => {
+        const hasLegacyNote =
+          item.commissionNoteLo.includes('L1 10%') ||
+          item.commissionNoteEn.includes('L1 10%');
+        if (!hasLegacyNote) return item;
+        return {
+          ...item,
+          commissionNoteLo: item.commissionNoteLo
+            .replace(/L1 10% · L2 6% · L3 (3|4)% · L4 (1|2)%/g, 'L1 15% · L2 10% · L3 7% · L4 5%')
+            .replace(/L1 ຮັບ 10% · L2 ຮັບ 6% · L3 ຮັບ (3|4)% · L4 ຮັບ (1|2)%/g, 'L1 ຮັບ 15% · L2 ຮັບ 10% · L3 ຮັບ 7% · L4 ຮັບ 5%'),
+          commissionNoteEn: item.commissionNoteEn.replace(
+            /L1 10% · L2 6% · L3 (3|4)% · L4 (1|2)%/g,
+            'L1 15% · L2 10% · L3 7% · L4 5%'
+          ),
+        };
+      })
     );
   }, []);
 
@@ -3414,18 +3441,26 @@ export default function App() {
             (raw.level1Rate === 10 &&
               raw.level2Rate === 6 &&
               raw.level3Rate === 4 &&
-              raw.level4Rate === 2);
+              raw.level4Rate === 2) ||
+            (raw.level1Rate === 10 &&
+              raw.level2Rate === 6 &&
+              raw.level3Rate === 3 &&
+              raw.level4Rate === 1) ||
+            (raw.level1Rate === 10 &&
+              raw.level2Rate === 5 &&
+              raw.level3Rate === 2 &&
+              raw.level4Rate === 1);
           if (
             raw.brandName === 'Aura Botanica' ||
             raw.currencySymbol !== '₭' ||
             isLegacyRates
           ) {
             const plTagline =
-              'PL Skincare Brand · 4 ແພັກເກັດ 4 ຊັ້ນ · ລະບົບຄິດໄລ່ເງິນຄ່າຄອມມິດຊັ່ນ 4 ຊັ້ນ (10% / 6% / 3% / 1%)';
-            const nextL1 = isLegacyRates ? 10 : raw.level1Rate;
-            const nextL2 = isLegacyRates ? 6 : raw.level2Rate;
-            const nextL3 = isLegacyRates ? 3 : raw.level3Rate;
-            const nextL4 = isLegacyRates ? 1 : raw.level4Rate;
+              'PL Skincare Brand · 4 ແພັກເກັດ 4 ຊັ້ນ · ລະບົບຄິດໄລ່ເງິນຄ່າຄອມມິດຊັ່ນ 4 ຊັ້ນ (15% / 10% / 7% / 5%)';
+            const nextL1 = isLegacyRates ? 15 : raw.level1Rate;
+            const nextL2 = isLegacyRates ? 10 : raw.level2Rate;
+            const nextL3 = isLegacyRates ? 7 : raw.level3Rate;
+            const nextL4 = isLegacyRates ? 5 : raw.level4Rate;
             setSettings({
               id: docData.id,
               ...raw,
@@ -3584,7 +3619,30 @@ export default function App() {
             setProducts(mergedList);
             upgradeBatch.commit().catch(() => {});
           } else {
-            setProducts(list);
+            const hasLegacyCommDesc = list.some((p) =>
+              (p.description || '').includes('L1 10% · L2 6% · L3 3% · L4 1%')
+            );
+            if (hasLegacyCommDesc) {
+              const descBatch = writeBatch(db);
+              const refreshedList = list.map((p) => {
+                if (!(p.description || '').includes('L1 10% · L2 6% · L3 3% · L4 1%')) {
+                  return p;
+                }
+                const nextDesc = p.description.replace(
+                  'L1 10% · L2 6% · L3 3% · L4 1%',
+                  'L1 15% · L2 10% · L3 7% · L4 5%'
+                );
+                descBatch.update(doc(db, 'products', p.id), {
+                  description: nextDesc,
+                  updatedAt: serverTimestamp(),
+                });
+                return { ...p, description: nextDesc };
+              });
+              setProducts(refreshedList);
+              descBatch.commit().catch(() => {});
+            } else {
+              setProducts(list);
+            }
           }
         }
       },
@@ -7981,9 +8039,9 @@ export default function App() {
       retailPriceLak: 474000,
       memberPriceLak: 390000,
       commissionNoteLo:
-        'ຄອມມິດຊັ່ນ 4 ຊັ້ນ: L1 ຮັບ 10% · L2 ຮັບ 6% · L3 ຮັບ 4% · L4 ຮັບ 2%',
+        `ຄອມມິດຊັ່ນ 4 ຊັ້ນ: L1 ຮັບ ${settings.level1Rate}% · L2 ຮັບ ${settings.level2Rate}% · L3 ຮັບ ${settings.level3Rate}% · L4 ຮັບ ${settings.level4Rate}%`,
       commissionNoteEn:
-        '4-Level Commission: L1 10% · L2 6% · L3 4% · L4 2% (Paid in ₭ LAK)',
+        `4-Level Commission: L1 ${settings.level1Rate}% · L2 ${settings.level2Rate}% · L3 ${settings.level3Rate}% · L4 ${settings.level4Rate}% (Paid in ₭ LAK)`,
       highlightsLo:
         '• ບຳລຸງຜິວໜ້າໃຫ້ຂາວກະຈ່າງໃສຢ່າງເປັນທຳມະຊາດ\n• ຫຼຸດຈຸດດ່າງດຳ, ຝ້າ, ກະ ແລະ ຮອຍສິວ\n• ເติມຄວາມຊຸ່ມຊື່ນ ຜິວນຽນນຸ້ມຕະຫຼອດມື້',
       highlightsEn:
@@ -8151,9 +8209,9 @@ export default function App() {
         retailPriceLak: retailLak,
         memberPriceLak: memberLak,
         commissionNoteLo:
-          'ຄອມມິດຊັ່ນ 4 ຊັ້ນ: L1 ຮັບ 10% · L2 ຮັບ 6% · L3 ຮັບ 4% · L4 ຮັບ 2%',
+          `ຄອມມິດຊັ່ນ 4 ຊັ້ນ: L1 ຮັບ ${settings.level1Rate}% · L2 ຮັບ ${settings.level2Rate}% · L3 ຮັບ ${settings.level3Rate}% · L4 ຮັບ ${settings.level4Rate}%`,
         commissionNoteEn:
-          '4-Level Commission: L1 10% · L2 6% · L3 4% · L4 2% (Paid in ₭ LAK)',
+          `4-Level Commission: L1 ${settings.level1Rate}% · L2 ${settings.level2Rate}% · L3 ${settings.level3Rate}% · L4 ${settings.level4Rate}% (Paid in ₭ LAK)`,
         highlightsLo: `• ${descLo}\n• ຮັບປະກັນສິນຄ້າແທ້ 100% ຈາກບໍລິສັດ ປິ່ງລານ ການຄ້າ ຂາເຂົ້າ-ຂາອອກ ຈຳກັດຜູ້ດຽວ`,
         highlightsEn: `• ${descEn}\n• 100% Authentic Product guaranteed by PING LAN TRADE IMPORT-EXPORT SOLE CO.,LTD`,
         ingredientsLo: 'ສານສະກັດໄຂ່ມຸກທຳມະຊາດແທ້ 100% ແລະ ວິຕາມິນບຳລຸງຜິວໜ້າ',
@@ -8197,10 +8255,10 @@ export default function App() {
     const brochureCardsHtml = resolvedBrochures
       .map((b) => {
         const profitLak = Math.max(0, b.retailPriceLak - b.memberPriceLak);
-        const l1Lak = Math.round(b.memberPriceLak * 0.1);
-        const l2Lak = Math.round(b.memberPriceLak * 0.06);
-        const l3Lak = Math.round(b.memberPriceLak * 0.04);
-        const l4Lak = Math.round(b.memberPriceLak * 0.02);
+        const l1Lak = Math.round((b.memberPriceLak * settings.level1Rate) / 100);
+        const l2Lak = Math.round((b.memberPriceLak * settings.level2Rate) / 100);
+        const l3Lak = Math.round((b.memberPriceLak * settings.level3Rate) / 100);
+        const l4Lak = Math.round((b.memberPriceLak * settings.level4Rate) / 100);
 
         return `
       <div class="brochure-card">
@@ -8231,7 +8289,7 @@ export default function App() {
             </div>
 
             <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:6px 10px;font-size:11px;color:#1E3A8A;font-weight:700;margin-bottom:8px;">
-              💎 ${b.commissionNoteLo} → L1 (10%): ${l1Lak.toLocaleString('en-US')} ₭ · L2 (6%): ${l2Lak.toLocaleString('en-US')} ₭ · L3 (4%): ${l3Lak.toLocaleString('en-US')} ₭ · L4 (2%): ${l4Lak.toLocaleString('en-US')} ₭
+              💎 ${b.commissionNoteLo} → L1 (${settings.level1Rate}%): ${l1Lak.toLocaleString('en-US')} ₭ · L2 (${settings.level2Rate}%): ${l2Lak.toLocaleString('en-US')} ₭ · L3 (${settings.level3Rate}%): ${l3Lak.toLocaleString('en-US')} ₭ · L4 (${settings.level4Rate}%): ${l4Lak.toLocaleString('en-US')} ₭
             </div>
           </div>
         </div>
@@ -8263,22 +8321,22 @@ export default function App() {
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;">
           <div style="background:#2E1A0F;color:#F5DF98;padding:12px;border-radius:10px;border:2px solid #E5C158;text-align:center;">
             <div style="font-size:11px;font-weight:700;">ຊັ້ນທີ 1 (L1 Direct Sponsor)</div>
-            <div style="font-size:22px;font-weight:900;color:#FFFFFF;font-family:monospace;margin:4px 0;">10%</div>
+            <div style="font-size:22px;font-weight:900;color:#FFFFFF;font-family:monospace;margin:4px 0;">${settings.level1Rate}%</div>
             <div style="font-size:10.5px;color:#E5C158;">ແນະນຳກົງ / Frontline</div>
           </div>
           <div style="background:#064E3B;color:#A7F3D0;padding:12px;border-radius:10px;border:2px solid #34D399;text-align:center;">
             <div style="font-size:11px;font-weight:700;">ຊັ້ນທີ 2 (L2 Generation 2)</div>
-            <div style="font-size:22px;font-weight:900;color:#FFFFFF;font-family:monospace;margin:4px 0;">6%</div>
+            <div style="font-size:22px;font-weight:900;color:#FFFFFF;font-family:monospace;margin:4px 0;">${settings.level2Rate}%</div>
             <div style="font-size:10.5px;color:#A7F3D0;">ລູກທີມຊັ້ນທີ 2</div>
           </div>
           <div style="background:#1E3A8A;color:#BFDBFE;padding:12px;border-radius:10px;border:2px solid #60A5FA;text-align:center;">
             <div style="font-size:11px;font-weight:700;">ຊັ້ນທີ 3 (L3 Generation 3)</div>
-            <div style="font-size:22px;font-weight:900;color:#FFFFFF;font-family:monospace;margin:4px 0;">4%</div>
+            <div style="font-size:22px;font-weight:900;color:#FFFFFF;font-family:monospace;margin:4px 0;">${settings.level3Rate}%</div>
             <div style="font-size:10.5px;color:#BFDBFE;">ລູກທີມຊັ້ນທີ 3</div>
           </div>
           <div style="background:#4C1D95;color:#DDD6FE;padding:12px;border-radius:10px;border:2px solid #A78BFA;text-align:center;">
             <div style="font-size:11px;font-weight:700;">ຊັ້ນທີ 4 (L4 Generation 4)</div>
-            <div style="font-size:22px;font-weight:900;color:#FFFFFF;font-family:monospace;margin:4px 0;">2%</div>
+            <div style="font-size:22px;font-weight:900;color:#FFFFFF;font-family:monospace;margin:4px 0;">${settings.level4Rate}%</div>
             <div style="font-size:10.5px;color:#DDD6FE;">ລູກທີມຊັ້ນທີ 4</div>
           </div>
         </div>
@@ -10524,10 +10582,10 @@ export default function App() {
       'ຈຳນວນກ່ອງ (Qty Boxes)',
       'ລາຄາຕໍ່ໜ່ວຍ (Unit Price ₭ LAK)',
       'ຍອດຊຳລະໃບບິນທັງໝົດ (Total Bill Amount ₭ LAK)',
-      'ຄອມມິດຊັ່ນ L1 (10% ₭ LAK)',
-      'ຄອມມິດຊັ່ນ L2 (6% ₭ LAK)',
-      'ຄອມມິດຊັ່ນ L3 (4% ₭ LAK)',
-      'ຄອມມິດຊັ່ນ L4 (2% ₭ LAK)',
+      `ຄອມມິດຊັ່ນ L1 (${settings.level1Rate}% ₭ LAK)`,
+      `ຄອມມິດຊັ່ນ L2 (${settings.level2Rate}% ₭ LAK)`,
+      `ຄອມມິດຊັ່ນ L3 (${settings.level3Rate}% ₭ LAK)`,
+      `ຄອມມິດຊັ່ນ L4 (${settings.level4Rate}% ₭ LAK)`,
       'ລວມຄອມມິດຊັ່ນ L1–L4 (Total Commission ₭ LAK)',
       'ຊ່ອງທາງຊຳລະເງິນ (Payment Method)',
       'ເລກອ້າງອີງການໂອນ (Payment Reference)',
@@ -11210,6 +11268,12 @@ export default function App() {
       prev.map((ord) => {
         if (ord.id !== orderId) return ord;
         const updated = { ...ord };
+        const totalRateRatio =
+          (settings.level1Rate +
+            settings.level2Rate +
+            settings.level3Rate +
+            settings.level4Rate) /
+          100;
         if (field === 'orderNumber') {
           updated.orderNumber = rawVal;
         } else if (field === 'orderDate') {
@@ -11232,7 +11296,7 @@ export default function App() {
           updated.totalAmount = updated.unitPrice * qty;
           updated.totalPv = updated.totalAmount;
           updated.totalCommissionGenerated = Math.round(
-            updated.totalAmount * 0.22
+            updated.totalAmount * totalRateRatio
           );
         } else if (field === 'unitPriceLak') {
           const lak = Math.max(0, Number(rawVal.replace(/[^0-9.]/g, '')) || 0);
@@ -11240,7 +11304,7 @@ export default function App() {
           updated.unitPrice = baseUnit;
           updated.totalAmount = baseUnit * Math.max(1, updated.quantity);
           updated.totalPv = updated.totalAmount;
-          updated.totalCommissionGenerated = updated.totalAmount * 0.22;
+          updated.totalCommissionGenerated = updated.totalAmount * totalRateRatio;
         } else if (field === 'totalAmountLak') {
           const lak = Math.max(0, Number(rawVal.replace(/[^0-9.]/g, '')) || 0);
           const baseTotal = lak / LAK_PER_THB;
@@ -11250,7 +11314,7 @@ export default function App() {
               ? baseTotal / updated.quantity
               : baseTotal;
           updated.totalPv = baseTotal;
-          updated.totalCommissionGenerated = baseTotal * 0.22;
+          updated.totalCommissionGenerated = baseTotal * totalRateRatio;
         } else if (field === 'paymentMethod') {
           updated.paymentMethod = rawVal;
         } else if (field === 'paymentRef') {
@@ -11309,7 +11373,14 @@ export default function App() {
       unitPrice: unitBase,
       totalAmount: unitBase,
       totalPv: unitBase,
-      totalCommissionGenerated: Math.round(unitBase * 0.22),
+      totalCommissionGenerated: Math.round(
+        (unitBase *
+          (settings.level1Rate +
+            settings.level2Rate +
+            settings.level3Rate +
+            settings.level4Rate)) /
+          100
+      ),
       status: 'fulfilled',
       paymentMethod: 'bank_qr',
       paymentRef: `BCEL-QR-${Date.now().toString().slice(-6)}`,
@@ -11386,10 +11457,10 @@ export default function App() {
     dailyFilteredOrders.forEach((ord) => {
       const dStr = getOrderDateString(ord);
       const totalLak = Math.round((ord.totalAmount || 0) * LAK_PER_THB);
-      const l1Lak = Math.round(totalLak * 0.1);
-      const l2Lak = Math.round(totalLak * 0.06);
-      const l3Lak = Math.round(totalLak * 0.04);
-      const l4Lak = Math.round(totalLak * 0.02);
+      const l1Lak = Math.round((totalLak * settings.level1Rate) / 100);
+      const l2Lak = Math.round((totalLak * settings.level2Rate) / 100);
+      const l3Lak = Math.round((totalLak * settings.level3Rate) / 100);
+      const l4Lak = Math.round((totalLak * settings.level4Rate) / 100);
       const commLak = l1Lak + l2Lak + l3Lak + l4Lak;
       const netLak = totalLak - commLak;
 
@@ -11420,7 +11491,13 @@ export default function App() {
     return Array.from(map.values()).sort((a, b) =>
       b.date.localeCompare(a.date)
     );
-  }, [dailyFilteredOrders]);
+  }, [
+    dailyFilteredOrders,
+    settings.level1Rate,
+    settings.level2Rate,
+    settings.level3Rate,
+    settings.level4Rate,
+  ]);
 
   const dailyReportTotals = useMemo(() => {
     return dailySummaryByDate.reduce(
@@ -11473,10 +11550,10 @@ export default function App() {
       'ຈຳນວນກ່ອງ (Qty Boxes)',
       'ລາຄາຕໍ່ໜ່ວຍ (Unit Price ₭ LAK)',
       'ຍອດຊຳລະໃບບິນທັງໝົດ (Total Bill ₭ LAK)',
-      'ຄອມມິດຊັ່ນ L1 (10% ₭ LAK)',
-      'ຄອມມິດຊັ່ນ L2 (6% ₭ LAK)',
-      'ຄອມມິດຊັ່ນ L3 (4% ₭ LAK)',
-      'ຄອມມິດຊັ່ນ L4 (2% ₭ LAK)',
+      `ຄອມມິດຊັ່ນ L1 (${settings.level1Rate}% ₭ LAK)`,
+      `ຄອມມິດຊັ່ນ L2 (${settings.level2Rate}% ₭ LAK)`,
+      `ຄອມມິດຊັ່ນ L3 (${settings.level3Rate}% ₭ LAK)`,
+      `ຄອມມິດຊັ່ນ L4 (${settings.level4Rate}% ₭ LAK)`,
       'ລວມຄອມມິດຊັ່ນ L1–L4 (Total Comm. ₭ LAK)',
       'ລາຍຮັບສຸດທິບໍລິສັດ (Net Company Revenue ₭ LAK)',
       'ຊ່ອງທາງຊຳລະເງິນ (Payment Method)',
@@ -11499,10 +11576,10 @@ export default function App() {
       const totalLak = Math.round((ord.totalAmount || 0) * LAK_PER_THB);
       const unitLak =
         ord.quantity > 0 ? Math.round(totalLak / ord.quantity) : totalLak;
-      const l1Lak = Math.round(totalLak * 0.1);
-      const l2Lak = Math.round(totalLak * 0.06);
-      const l3Lak = Math.round(totalLak * 0.04);
-      const l4Lak = Math.round(totalLak * 0.02);
+      const l1Lak = Math.round((totalLak * settings.level1Rate) / 100);
+      const l2Lak = Math.round((totalLak * settings.level2Rate) / 100);
+      const l3Lak = Math.round((totalLak * settings.level3Rate) / 100);
+      const l4Lak = Math.round((totalLak * settings.level4Rate) / 100);
       const commLak = l1Lak + l2Lak + l3Lak + l4Lak;
       const netLak = totalLak - commLak;
       return {
@@ -11616,10 +11693,10 @@ export default function App() {
       <th>ຈຳນວນໃບບິນ (Bills)</th>
       <th>ຈຳນວນກ່ອງ (Boxes)</th>
       <th>ຍອດຂາຍລວມ (Gross Sales ₭)</th>
-      <th>L1 (10% ₭)</th>
-      <th>L2 (6% ₭)</th>
-      <th>L3 (4% ₭)</th>
-      <th>L4 (2% ₭)</th>
+      <th>L1 (${settings.level1Rate}% ₭)</th>
+      <th>L2 (${settings.level2Rate}% ₭)</th>
+      <th>L3 (${settings.level3Rate}% ₭)</th>
+      <th>L4 (${settings.level4Rate}% ₭)</th>
       <th>ລວມຄອມມິດຊັ່ນ L1–L4 (₭)</th>
       <th>ລາຍຮັບສຸດທິບໍລິສັດ (Net ₭)</th>
       <td colspan="12"></td>
@@ -11783,7 +11860,7 @@ export default function App() {
         <div style="font-size:18px;font-weight:800;color:#1E3A8A;margin-top:2px;">${dailyReportTotals.grossSalesLak.toLocaleString('en-US')} ₭</div>
       </div>
       <div class="kpi">
-        <div style="font-size:10px;color:#71717a;">ຄອມມິດຊັ່ນ L1–L4 (10%/6%/4%/2%)</div>
+        <div style="font-size:10px;color:#71717a;">ຄອມມິດຊັ່ນ L1–L4 (${settings.level1Rate}%/${settings.level2Rate}%/${settings.level3Rate}%/${settings.level4Rate}%)</div>
         <div style="font-size:18px;font-weight:800;color:#065F46;margin-top:2px;">${dailyReportTotals.totalCommLak.toLocaleString('en-US')} ₭</div>
       </div>
       <div class="kpi">
@@ -11813,7 +11890,14 @@ export default function App() {
           .map((ord, idx) => {
             const ship = extractOrderShippingInfo(ord);
             const totalLak = Math.round((ord.totalAmount || 0) * LAK_PER_THB);
-            const commLak = Math.round(totalLak * 0.22);
+            const commLak = Math.round(
+              (totalLak *
+                (settings.level1Rate +
+                  settings.level2Rate +
+                  settings.level3Rate +
+                  settings.level4Rate)) /
+                100
+            );
             return `<tr>
               <td>${idx + 1}</td>
               <td style="font-family:monospace;font-weight:700;">${escapeHtmlCell(getOrderDateString(ord))}</td>
@@ -16910,8 +16994,8 @@ export default function App() {
                           </h3>
                           <p className="text-xs text-zinc-600 leading-relaxed">
                             {lang === 'lo'
-                              ? 'ສະຫຼຸບຍອດຂາຍໃບບິນປະຈຳວັນ, ຄອມມິດຊັ່ນ L1 (10%), L2 (6%), L3 (4%), L4 (2%) ແລະ ລາຍຮັບສຸດທິບໍລິສັດ ພ້ອມດາວໂຫຼດ Excel ຫຼື ພິມ A4.'
-                              : 'Daily sales summary by date, L1 (10%), L2 (6%), L3 (4%), L4 (2%) commission split, and net company revenue in Kip (₭ LAK).'}
+                              ? `ສະຫຼຸບຍອດຂາຍໃບບິນປະຈຳວັນ, ຄອມມິດຊັ່ນ L1 (${settings.level1Rate}%), L2 (${settings.level2Rate}%), L3 (${settings.level3Rate}%), L4 (${settings.level4Rate}%) ແລະ ລາຍຮັບສຸດທິບໍລິສັດ ພ້ອມດາວໂຫຼດ Excel ຫຼື ພິມ A4.`
+                              : `Daily sales summary by date, L1 (${settings.level1Rate}%), L2 (${settings.level2Rate}%), L3 (${settings.level3Rate}%), L4 (${settings.level4Rate}%) commission split, and net company revenue in Kip (₭ LAK).`}
                           </p>
                         </div>
                         <div className="pt-2 border-t border-amber-300/70 flex flex-wrap items-center gap-2">
@@ -17208,8 +17292,8 @@ export default function App() {
                         <div className="p-3.5 rounded-xl bg-white border border-emerald-300">
                           <p className="text-[11px] font-semibold text-emerald-800">
                             {lang === 'lo'
-                              ? 'ລວມຄອມມິດຊັ່ນ L1–L4 (10%/6%/4%/2%)'
-                              : 'Daily L1–L4 Commissions (22%)'}
+                              ? `ລວມຄອມມິດຊັ່ນ L1–L4 (${settings.level1Rate}%/${settings.level2Rate}%/${settings.level3Rate}%/${settings.level4Rate}%)`
+                              : `Daily L1–L4 Commissions (${settings.level1Rate + settings.level2Rate + settings.level3Rate + settings.level4Rate}%)`}
                           </p>
                           <p className="text-lg font-extrabold text-emerald-700 font-mono mt-0.5">
                             {dailyReportTotals.totalCommLak.toLocaleString(
@@ -17253,16 +17337,16 @@ export default function App() {
                                   : 'Gross Sales (₭)'}
                               </th>
                               <th className="py-2.5 px-3 text-right">
-                                L1 (10% ₭)
+                                L1 ({settings.level1Rate}% ₭)
                               </th>
                               <th className="py-2.5 px-3 text-right">
-                                L2 (6% ₭)
+                                L2 ({settings.level2Rate}% ₭)
                               </th>
                               <th className="py-2.5 px-3 text-right">
-                                L3 (4% ₭)
+                                L3 ({settings.level3Rate}% ₭)
                               </th>
                               <th className="py-2.5 px-3 text-right">
-                                L4 (2% ₭)
+                                L4 ({settings.level4Rate}% ₭)
                               </th>
                               <th className="py-2.5 px-3 text-right">
                                 {lang === 'lo'
@@ -17844,7 +17928,7 @@ export default function App() {
                                 </th>
                                 <th className="py-2 px-2 text-right">
                                   {lang === 'lo'
-                                    ? 'ຄອມມິດຊັ່ນ L1–L4 (22% ₭)'
+                                    ? `ຄອມມິດຊັ່ນ L1–L4 (${settings.level1Rate + settings.level2Rate + settings.level3Rate + settings.level4Rate}% ₭)`
                                     : 'L1–L4 Comm. (₭)'}
                                 </th>
                                 <th className="py-2 px-2">
@@ -17870,7 +17954,14 @@ export default function App() {
                                 const totalLak = Math.round(
                                   (ord.totalAmount || 0) * LAK_PER_THB
                                 );
-                                const commLak = Math.round(totalLak * 0.22);
+                                const commLak = Math.round(
+                                  (totalLak *
+                                    (settings.level1Rate +
+                                      settings.level2Rate +
+                                      settings.level3Rate +
+                                      settings.level4Rate)) /
+                                    100
+                                );
                                 return (
                                   <tr
                                     key={ord.id}
@@ -20537,10 +20628,10 @@ export default function App() {
                             ຊັ້ນທີ 1 (L1 ແນະນຳກົງ / Direct Sponsor)
                           </span>
                           <p className="text-lg font-mono font-black text-white mt-0.5">
-                            ຮັບຄອມມິດຊັ່ນ 10%
+                            ຮັບຄອມມິດຊັ່ນ {settings.level1Rate}%
                           </p>
                           <span className="text-[11px] text-amber-200/90">
-                            Tier L1 Frontline Sponsor (10%)
+                            Tier L1 Frontline Sponsor ({settings.level1Rate}%)
                           </span>
                         </div>
                         <div className="p-3 rounded-xl bg-emerald-950/90 border border-emerald-400/50 text-white">
@@ -20548,10 +20639,10 @@ export default function App() {
                             ຊັ້ນທີ 2 (L2 ລູກທີມຊັ້ນທີ 2 / Gen 2)
                           </span>
                           <p className="text-lg font-mono font-black text-white mt-0.5">
-                            ຮັບຄອມມິດຊັ່ນ 6%
+                            ຮັບຄອມມິດຊັ່ນ {settings.level2Rate}%
                           </p>
                           <span className="text-[11px] text-emerald-200/90">
-                            Tier L2 2nd Generation (6%)
+                            Tier L2 2nd Generation ({settings.level2Rate}%)
                           </span>
                         </div>
                         <div className="p-3 rounded-xl bg-blue-950/90 border border-sky-400/50 text-white">
@@ -20559,10 +20650,10 @@ export default function App() {
                             ຊັ້ນທີ 3 (L3 ລູກທີມຊັ້ນທີ 3 / Gen 3)
                           </span>
                           <p className="text-lg font-mono font-black text-white mt-0.5">
-                            ຮັບຄອມມິດຊັ່ນ 4%
+                            ຮັບຄອມມິດຊັ່ນ {settings.level3Rate}%
                           </p>
                           <span className="text-[11px] text-sky-200/90">
-                            Tier L3 3rd Generation (4%)
+                            Tier L3 3rd Generation ({settings.level3Rate}%)
                           </span>
                         </div>
                         <div className="p-3 rounded-xl bg-purple-950/90 border border-purple-400/50 text-white">
@@ -20570,10 +20661,10 @@ export default function App() {
                             ຊັ້ນທີ 4 (L4 ລູກທີມຊັ້ນທີ 4 / Gen 4)
                           </span>
                           <p className="text-lg font-mono font-black text-white mt-0.5">
-                            ຮັບຄອມມິດຊັ່ນ 2%
+                            ຮັບຄອມມິດຊັ່ນ {settings.level4Rate}%
                           </p>
                           <span className="text-[11px] text-purple-200/90">
-                            Tier L4 4th Generation (2%)
+                            Tier L4 4th Generation ({settings.level4Rate}%)
                           </span>
                         </div>
                       </div>
@@ -21034,8 +21125,8 @@ export default function App() {
                             </h3>
                             <p className="text-xs text-zinc-600">
                               {lang === 'lo'
-                                ? 'ສະແດງລາຄາຂາຍຍ່ອຍ (L5), ລາຄາສະມາຊິກ (L1–L4), ກຳໄລຂາຍຍ່ອຍທັນທີ ແລະ ຄອມມິດຊັ່ນສາຍງານ 4 ຊັ້ນ (L1 10%, L2 6%, L3 4%, L4 2%)'
-                                : 'Displays L5 Retail Price, L1–L4 Member Price, Instant Retail Margin, and 4-Level Unilevel Commissions (L1 10%, L2 6%, L3 4%, L4 2%).'}
+                                ? `ສະແດງລາຄາຂາຍຍ່ອຍ (L5), ລາຄາສະມາຊິກ (L1–L4), ກຳໄລຂາຍຍ່ອຍທັນທີ ແລະ ຄອມມິດຊັ່ນສາຍງານ 4 ຊັ້ນ (L1 ${settings.level1Rate}%, L2 ${settings.level2Rate}%, L3 ${settings.level3Rate}%, L4 ${settings.level4Rate}%)`
+                                : `Displays L5 Retail Price, L1–L4 Member Price, Instant Retail Margin, and 4-Level Unilevel Commissions (L1 ${settings.level1Rate}%, L2 ${settings.level2Rate}%, L3 ${settings.level3Rate}%, L4 ${settings.level4Rate}%).`}
                             </p>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
@@ -21088,10 +21179,10 @@ export default function App() {
                               0,
                               item.retailPriceLak - item.memberPriceLak
                             );
-                            const l1Com = Math.round(item.memberPriceLak * 0.1);
-                            const l2Com = Math.round(item.memberPriceLak * 0.06);
-                            const l3Com = Math.round(item.memberPriceLak * 0.04);
-                            const l4Com = Math.round(item.memberPriceLak * 0.02);
+                            const l1Com = Math.round((item.memberPriceLak * settings.level1Rate) / 100);
+                            const l2Com = Math.round((item.memberPriceLak * settings.level2Rate) / 100);
+                            const l3Com = Math.round((item.memberPriceLak * settings.level3Rate) / 100);
+                            const l4Com = Math.round((item.memberPriceLak * settings.level4Rate) / 100);
 
                             return (
                               <div
@@ -21231,7 +21322,7 @@ export default function App() {
                                       <div className="grid grid-cols-4 gap-1.5 pt-1 text-center font-mono text-[11px]">
                                         <div className="bg-black/30 rounded-lg py-1 px-1.5 border border-[#E5C158]/30">
                                           <div className="text-[10px] text-[#E5C158]">
-                                            L1 (10%)
+                                            L1 ({settings.level1Rate}%)
                                           </div>
                                           <div className="font-bold text-white">
                                             {l1Com.toLocaleString('en-US')} ₭
@@ -21239,7 +21330,7 @@ export default function App() {
                                         </div>
                                         <div className="bg-black/30 rounded-lg py-1 px-1.5 border border-emerald-400/30">
                                           <div className="text-[10px] text-emerald-300">
-                                            L2 (6%)
+                                            L2 ({settings.level2Rate}%)
                                           </div>
                                           <div className="font-bold text-white">
                                             {l2Com.toLocaleString('en-US')} ₭
@@ -21247,7 +21338,7 @@ export default function App() {
                                         </div>
                                         <div className="bg-black/30 rounded-lg py-1 px-1.5 border border-sky-400/30">
                                           <div className="text-[10px] text-sky-300">
-                                            L3 (4%)
+                                            L3 ({settings.level3Rate}%)
                                           </div>
                                           <div className="font-bold text-white">
                                             {l3Com.toLocaleString('en-US')} ₭
@@ -21255,7 +21346,7 @@ export default function App() {
                                         </div>
                                         <div className="bg-black/30 rounded-lg py-1 px-1.5 border border-purple-400/30">
                                           <div className="text-[10px] text-purple-300">
-                                            L4 (2%)
+                                            L4 ({settings.level4Rate}%)
                                           </div>
                                           <div className="font-bold text-white">
                                             {l4Com.toLocaleString('en-US')} ₭
@@ -24792,6 +24883,37 @@ export default function App() {
                             setSettings({
                               ...settings,
                               brandTagline:
+                                'PL Skincare Brand · 4 ແພັກເກັດ 4 ຊັ້ນ · ລະບົບຄິດໄລ່ເງິນຄ່າຄອມມິດຊັ່ນ 4 ຊັ້ນ (15% / 10% / 7% / 5%)',
+                              level1Rate: 15,
+                              level2Rate: 10,
+                              level3Rate: 7,
+                              level4Rate: 5,
+                            })
+                          }
+                          className={`px-2.5 py-2 rounded-lg border text-left transition-all ${
+                            settings.level1Rate === 15 &&
+                            settings.level2Rate === 10 &&
+                            settings.level3Rate === 7 &&
+                            settings.level4Rate === 5
+                              ? 'bg-[#2E1A0F] text-[#F5DF98] border-[#C89D54] shadow-xs'
+                              : 'bg-white text-zinc-800 border-zinc-300 hover:border-[#C89D54]'
+                          }`}
+                        >
+                          <div className="text-[11px] font-bold">
+                            {lang === 'lo'
+                              ? '⭐ ແຜນທາງການ L1–L4 (37%)'
+                              : '⭐ Official Plan (37%)'}
+                          </div>
+                          <div className="text-[10px] font-mono opacity-90">
+                            L1: 15% · L2: 10% · L3: 7% · L4: 5%
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSettings({
+                              ...settings,
+                              brandTagline:
                                 'PL Skincare Brand · 4 ແພັກເກັດ 4 ຊັ້ນ · ລະບົບຄິດໄລ່ເງິນຄ່າຄອມມິດຊັ່ນ 4 ຊັ້ນ (10% / 6% / 3% / 1%)',
                               level1Rate: 10,
                               level2Rate: 6,
@@ -24810,42 +24932,11 @@ export default function App() {
                         >
                           <div className="text-[11px] font-bold">
                             {lang === 'lo'
-                              ? '⭐ ແນະນຳສົມດຸນ (20%)'
-                              : '⭐ Recommended (20%)'}
+                              ? '🛡️ ແຜນສົມດຸນ (20%)'
+                              : '🛡️ Balanced (20%)'}
                           </div>
                           <div className="text-[10px] font-mono opacity-90">
                             L1: 10% · L2: 6% · L3: 3% · L4: 1%
-                          </div>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setSettings({
-                              ...settings,
-                              brandTagline:
-                                'PL Skincare Brand · 4 ແພັກເກັດ 4 ຊັ້ນ · ລະບົບຄິດໄລ່ເງິນຄ່າຄອມມິດຊັ່ນ 4 ຊັ້ນ (10% / 5% / 2% / 1%)',
-                              level1Rate: 10,
-                              level2Rate: 5,
-                              level3Rate: 2,
-                              level4Rate: 1,
-                            })
-                          }
-                          className={`px-2.5 py-2 rounded-lg border text-left transition-all ${
-                            settings.level1Rate === 10 &&
-                            settings.level2Rate === 5 &&
-                            settings.level3Rate === 2 &&
-                            settings.level4Rate === 1
-                              ? 'bg-[#2E1A0F] text-[#F5DF98] border-[#C89D54] shadow-xs'
-                              : 'bg-white text-zinc-800 border-zinc-300 hover:border-[#C89D54]'
-                          }`}
-                        >
-                          <div className="text-[11px] font-bold">
-                            {lang === 'lo'
-                              ? '🛡️ ເນັ້ນກຳໄລຄ້າສົ່ງ (18%)'
-                              : '🛡️ Wholesale Safe (18%)'}
-                          </div>
-                          <div className="text-[10px] font-mono opacity-90">
-                            L1: 10% · L2: 5% · L3: 2% · L4: 1%
                           </div>
                         </button>
                         <button
@@ -24872,8 +24963,8 @@ export default function App() {
                         >
                           <div className="text-[11px] font-bold">
                             {lang === 'lo'
-                              ? '🚀 ຂະຫຍາຍທີມໄວ (22%)'
-                              : '🚀 High Growth (22%)'}
+                              ? '📊 ແຜນມາດຕະຖານ (22%)'
+                              : '📊 Standard (22%)'}
                           </div>
                           <div className="text-[10px] font-mono opacity-90">
                             L1: 10% · L2: 6% · L3: 4% · L4: 2%

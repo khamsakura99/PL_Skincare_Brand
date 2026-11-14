@@ -549,17 +549,17 @@ export const DEFAULT_BUSINESS_MARKETING_PLAN_STEPS: BusinessMarketingPlanStep[] 
     badgeLo: 'ຂັ້ນຕອນທີ 3 · ແຜນລາຍຮັບຄອມມິດຊັ່ນ 4 ຊັ້ນ (Unilevel L1–L4)',
     badgeEn: 'STEP 03 · 4-LEVEL UNILEVEL COMMISSION PLAN (L1–L4)',
     titleLo: 'ໂຄງສ້າງການຈ່າຍຄ່າແນະນຳ ແລະ ຄອມມິດຊັ່ນສາຍງານ 4 ຊັ້ນລຶກ ອັດຕະໂນມັດ',
-    titleEn: 'Automated 4-Generation Unilevel Commission Distribution (22% Total Commission)',
+    titleEn: 'Automated 4-Generation Unilevel Commission Distribution (37% Total Commission)',
     summaryLo:
       'ລະບົບຄຳນວນຄ່າຄອມມິດຊັ່ນອັດຕະໂນມັດທັນທີທີ່ມີການສັ່ງຊື້ສິນຄ້າໃນສາຍງານ 4 ຊັ້ນ (L1 ຫາ L4) ຈ່າຍເປັນເງິນກີບລາວ (₭ LAK) ໂປ່ງໃສ ກວດສອບໄດ້ທຸກລາຍການ.',
     summaryEn:
       'Every order automatically triggers real-time Unilevel commissions across up to 4 upline generations, paid transparently in Lao Kip (₭ LAK).',
     actionPointsLo:
-      '• ຊັ້ນທີ 1 (L1 ແນະນຳກົງ / Direct Sponsor): ຮັບຄອມມິດຊັ່ນ 10%\n• ຊັ້ນທີ 2 (L2 ລູກທີມຊັ້ນທີ 2 / Generation 2): ຮັບຄອມມິດຊັ່ນ 6%\n• ຊັ້ນທີ 3 (L3 ລູກທີມຊັ້ນທີ 3 / Generation 3): ຮັບຄອມມິດຊັ່ນ 4%\n• ຊັ້ນທີ 4 (L4 ລູກທີມຊັ້ນທີ 4 / Generation 4): ຮັບຄອມມິດຊັ່ນ 2%',
+      '• ຊັ້ນທີ 1 (L1 ແນະນຳກົງ / Direct Sponsor): ຮັບຄອມມິດຊັ່ນ 15%\n• ຊັ້ນທີ 2 (L2 ລູກທີມຊັ້ນທີ 2 / Generation 2): ຮັບຄອມມິດຊັ່ນ 10%\n• ຊັ້ນທີ 3 (L3 ລູກທີມຊັ້ນທີ 3 / Generation 3): ຮັບຄອມມິດຊັ່ນ 7%\n• ຊັ້ນທີ 4 (L4 ລູກທີມຊັ້ນທີ 4 / Generation 4): ຮັບຄອມມິດຊັ່ນ 5%',
     actionPointsEn:
-      '• Tier L1 (Direct Frontline Sponsor): Earn 10% commission\n• Tier L2 (2nd Generation Downline): Earn 6% commission\n• Tier L3 (3rd Generation Downline): Earn 4% commission\n• Tier L4 (4th Generation Downline): Earn 2% commission',
-    targetKpiLo: 'ລວມຈ່າຍຄອມມິດຊັ່ນສູງສຸດ 22% (L1: 10% + L2: 6% + L3: 4% + L4: 2%)',
-    targetKpiEn: '22% Total Unilevel Commission (10% + 6% + 4% + 2%)',
+      '• Tier L1 (Direct Frontline Sponsor): Earn 15% commission\n• Tier L2 (2nd Generation Downline): Earn 10% commission\n• Tier L3 (3rd Generation Downline): Earn 7% commission\n• Tier L4 (4th Generation Downline): Earn 5% commission',
+    targetKpiLo: 'ລວມຈ່າຍຄອມມິດຊັ່ນສູງສຸດ 37% (L1: 15% + L2: 10% + L3: 7% + L4: 5%)',
+    targetKpiEn: '37% Total Unilevel Commission (15% + 10% + 7% + 5%)',
     colorTheme: 'sapphire',
   },
   {
@@ -574,9 +574,9 @@ export const DEFAULT_BUSINESS_MARKETING_PLAN_STEPS: BusinessMarketingPlanStep[] 
     summaryEn:
       'Partners select tailored starter packages to stock inventory and build Personal & Group Sales Volume toward prestigious leadership ranks.',
     actionPointsLo:
-      '• 4 ແພັກເກັດເລີ່ມຕົ້ນ: Bronze Starter, Silver Builder, Gold Pro ແລະ Diamond Founder\n• 5 ຕຳແໜ່ງຜູ້ນຳ: Brand Partner → Silver Director → Gold Director → Emerald Executive → Diamond Ambassador\n• ຮັບຄອມມິດຊັ່ນຄົບທັງ 4 ຊັ້ນ (L1 10%, L2 6%, L3 4%, L4 2%) ເປັນເງິນກີບລາວ (₭ LAK)',
+      '• 4 ແພັກເກັດເລີ່ມຕົ້ນ: Bronze Starter, Silver Builder, Gold Pro ແລະ Diamond Founder\n• 5 ຕຳແໜ່ງຜູ້ນຳ: Brand Partner → Silver Director → Gold Director → Emerald Executive → Diamond Ambassador\n• ຮັບຄອມມິດຊັ່ນຄົບທັງ 4 ຊັ້ນ (L1 15%, L2 10%, L3 7%, L4 5%) ເປັນເງິນກີບລາວ (₭ LAK)',
     actionPointsEn:
-      '• 4 Enrollment Packages: Bronze Starter, Silver Builder, Gold Pro & Diamond Founder\n• 5 Career Ranks: Brand Partner → Silver Director → Gold Director → Emerald Executive → Diamond Ambassador\n• Earn full 4-Level commissions (L1 10%, L2 6%, L3 4%, L4 2%) paid in Lao Kip (₭ LAK)',
+      '• 4 Enrollment Packages: Bronze Starter, Silver Builder, Gold Pro & Diamond Founder\n• 5 Career Ranks: Brand Partner → Silver Director → Gold Director → Emerald Executive → Diamond Ambassador\n• Earn full 4-Level commissions (L1 15%, L2 10%, L3 7%, L4 5%) paid in Lao Kip (₭ LAK)',
     targetKpiLo: 'ສ້າງຜູ້ນຳສາຍງານ Gold & Diamond ທົ່ວປະເທດ',
     targetKpiEn: 'Develop Gold & Diamond Leaders Nationwide',
     colorTheme: 'amethyst',
@@ -663,9 +663,9 @@ export const DEFAULT_PRODUCT_BROCHURE_ITEMS: ProductBrochureItem[] = [
     retailPriceLak: 350000,
     memberPriceLak: 350000,
     commissionNoteLo:
-      'ລາຄາ L1: 350,000 ₭/1 (ຈຳນວນ 1–50) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 10% · L2 6% · L3 3% · L4 1%',
+      'ລາຄາ L1: 350,000 ₭/1 (ຈຳນວນ 1–50) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 15% · L2 10% · L3 7% · L4 5%',
     commissionNoteEn:
-      'L1 Price: 350,000 ₭/1 (Qty 1–50) · 4-Level Monthly Commission: L1 10% · L2 6% · L3 3% · L4 1%',
+      'L1 Price: 350,000 ₭/1 (Qty 1–50) · 4-Level Monthly Commission: L1 15% · L2 10% · L3 7% · L4 5%',
     highlightsLo:
       '• ຟື້ນຟູຜິວໜ້າທີ່หมອງຄ້ຳໃຫ້ຂາວກະຈ່າງໃສຢ່າງເປັນທຳມະຊາດ\n• ຫຼຸດเลือนຝ້າ, ກະ, ຈຸດດ່າງດຳ ແລະ ຮອຍສິວໃຫ້ຈາງລົງ\n• ກະຊັບຮູຂຸມຂົນ ປັບຜິວໜ້າໃຫ້ລຽບນຽນ ຊຸ່ມຊື່ນອิ่มນ້ຳ',
     highlightsEn:
@@ -694,9 +694,9 @@ export const DEFAULT_PRODUCT_BROCHURE_ITEMS: ProductBrochureItem[] = [
     retailPriceLak: 300000,
     memberPriceLak: 300000,
     commissionNoteLo:
-      'ລາຄາ L2: 300,000 ₭/1 (ຈຳນວນ 50) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 10% · L2 6% · L3 3% · L4 1%',
+      'ລາຄາ L2: 300,000 ₭/1 (ຈຳນວນ 50) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 15% · L2 10% · L3 7% · L4 5%',
     commissionNoteEn:
-      'L2 Price: 300,000 ₭/1 (Qty 50) · 4-Level Monthly Commission: L1 10% · L2 6% · L3 3% · L4 1%',
+      'L2 Price: 300,000 ₭/1 (Qty 50) · 4-Level Monthly Commission: L1 15% · L2 10% · L3 7% · L4 5%',
     highlightsLo:
       '• ປົກປ້ອງຜິວຈາກລັງສີ UVA/UVB ແລະ ມົນລະພິດຕະຫຼອດມື້\n• ປັບສີຜິວໃຫ້ຂາວໃສຂຶ້ນ 1 ລະດັບທັນທີທີ່ທາ ບໍ່ວອກ ບໍ່เหนียว\n• ເຕີມຄວາມຊຸ່ມຊື່ນ ແລະ ລ໊ອກເຄື່ອງສຳອາງໃຫ້ຕິດທົນນານ',
     highlightsEn:
@@ -725,9 +725,9 @@ export const DEFAULT_PRODUCT_BROCHURE_ITEMS: ProductBrochureItem[] = [
     retailPriceLak: 250000,
     memberPriceLak: 250000,
     commissionNoteLo:
-      'ລາຄາ L3: 250,000 ₭/1 (ຈຳນວນ 100) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 10% · L2 6% · L3 3% · L4 1%',
+      'ລາຄາ L3: 250,000 ₭/1 (ຈຳນວນ 100) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 15% · L2 10% · L3 7% · L4 5%',
     commissionNoteEn:
-      'L3 Price: 250,000 ₭/1 (Qty 100) · 4-Level Monthly Commission: L1 10% · L2 6% · L3 3% · L4 1%',
+      'L3 Price: 250,000 ₭/1 (Qty 100) · 4-Level Monthly Commission: L1 15% · L2 10% · L3 7% · L4 5%',
     highlightsLo:
       '• ບັນຈຸພັນກະປຸກຝາຄຣິສຕັດສີທອງ ມາພ້ອມບ່ວງຕັກຄຣີມສະອາດປອດໄພ\n• ຟື້ນຟູຜິວໜ້າລະດັບพรີມຽມ ໃຫ້ຜິວເດັ້ງ ອ່ອນเยາວ ກະຈ່າງໃສ\n• ເໝາະສຳລັບໃຊ້ເອງ ຫຼື ມອບເປັນຂອງຂວັນລະດັບ VIP',
     highlightsEn:
@@ -756,9 +756,9 @@ export const DEFAULT_PRODUCT_BROCHURE_ITEMS: ProductBrochureItem[] = [
     retailPriceLak: 200000,
     memberPriceLak: 200000,
     commissionNoteLo:
-      'ລາຄາ L4: 200,000 ₭/1 (ຈຳນວນ 500) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 10% · L2 6% · L3 3% · L4 1%',
+      'ລາຄາ L4: 200,000 ₭/1 (ຈຳນວນ 500) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 15% · L2 10% · L3 7% · L4 5%',
     commissionNoteEn:
-      'L4 Price: 200,000 ₭/1 (Qty 500) · 4-Level Monthly Commission: L1 10% · L2 6% · L3 3% · L4 1%',
+      'L4 Price: 200,000 ₭/1 (Qty 500) · 4-Level Monthly Commission: L1 15% · L2 10% · L3 7% · L4 5%',
     highlightsLo:
       '• ຈັບຄູ່ບຳລຸງຜິວໜ້າ + ປົກປ້ອງແສງແດດ ຄົບຈົບໃນເຊັດດຽວ ເຫັນຜົນໄວຂຶ້ນ 2 ເທົ່າ\n• ຕອນເຊົ້າບຳລຸງດ້ວຍຄຣີມໄຂ່ມຸກ + ທາທັບດ້ວຍກັນແດດ PL Sunscreen Isolation\n• ຕອນກາງຄືນຟື້ນຟູຜິວຢ່າງລ້ຳລຶກດ້ວຍຄຣີມໄຂ່ມຸກ PL Pearl Care Face',
     highlightsEn:
@@ -1106,12 +1106,12 @@ export function getInitialSettings(ownerId: string): BrandPlanSettings {
     ownerId,
     brandName: 'PL Skincare Brand',
     brandTagline:
-      'PL Skincare Brand · 4 ແພັກເກັດ 4 ຊັ້ນ · ລະບົບຄິດໄລ່ເງິນຄ່າຄອມມິດຊັ່ນ 4 ຊັ້ນ (10% / 6% / 3% / 1%)',
+      'PL Skincare Brand · 4 ແພັກເກັດ 4 ຊັ້ນ · ລະບົບຄິດໄລ່ເງິນຄ່າຄອມມິດຊັ່ນ 4 ຊັ້ນ (15% / 10% / 7% / 5%)',
     currencySymbol: '₭',
-    level1Rate: 10,
-    level2Rate: 6,
-    level3Rate: 3,
-    level4Rate: 1,
+    level1Rate: 15,
+    level2Rate: 10,
+    level3Rate: 7,
+    level4Rate: 5,
     minActivePv: 350000 / 600,
   };
 }
@@ -1201,7 +1201,7 @@ export function getInitialProducts(ownerId: string): Product[] {
       name: 'L1 ຄຣີມໄຂ່ມຸກ PL Pearl Care Face (350,000 ₭/1 · ຈຳນວນ 1–50) / L1 PL Pearl Care Face Cream (350,000 ₭/1 · Qty 1–50)',
       category: 'Pearl Facial Cream / ຄຣີມໄຂ່ມຸກບຳລຸງຜິວໜ້າ',
       description:
-        'ຊັ້ນ L1 ລາຄາ 350,000 ກີບ/1 (ຈຳນວນ 1–50 ກ່ອງ) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 10% · L2 6% · L3 3% · L4 1% · L1 Price: 350,000 kip/1 (Qty 1–50) with monthly commission.',
+        'ຊັ້ນ L1 ລາຄາ 350,000 ກີບ/1 (ຈຳນວນ 1–50 ກ່ອງ) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 15% · L2 10% · L3 7% · L4 5% · L1 Price: 350,000 kip/1 (Qty 1–50) with monthly commission.',
       retailPrice: 350000 / 600,
       memberPrice: 350000 / 600,
       pv: 350000 / 600,
@@ -1217,7 +1217,7 @@ export function getInitialProducts(ownerId: string): Product[] {
       name: 'L2 ຄຣີມໄຂ່ມຸກ PL Pearl Care Face (300,000 ₭/1 · ຈຳນວນ 50) / L2 PL Pearl Care Face Cream (300,000 ₭/1 · Qty 50)',
       category: 'Pearl Facial Cream / ຄຣີມໄຂ່ມຸກບຳລຸງຜິວໜ້າ',
       description:
-        'ຊັ້ນ L2 ລາຄາ 300,000 ກີບ/1 (ຈຳນວນ 50 ກ່ອງ) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 10% · L2 6% · L3 3% · L4 1% · L2 Price: 300,000 kip/1 (Qty 50) with monthly commission.',
+        'ຊັ້ນ L2 ລາຄາ 300,000 ກີບ/1 (ຈຳນວນ 50 ກ່ອງ) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 15% · L2 10% · L3 7% · L4 5% · L2 Price: 300,000 kip/1 (Qty 50) with monthly commission.',
       retailPrice: 300000 / 600,
       memberPrice: 300000 / 600,
       pv: 300000 / 600,
@@ -1233,7 +1233,7 @@ export function getInitialProducts(ownerId: string): Product[] {
       name: 'L3 ຄຣີມໄຂ່ມຸກ PL Pearl Care Face (250,000 ₭/1 · ຈຳນວນ 100) / L3 PL Pearl Care Face Cream (250,000 ₭/1 · Qty 100)',
       category: 'Pearl Facial Cream / ຄຣີມໄຂ່ມຸກບຳລຸງຜິວໜ້າ',
       description:
-        'ຊັ້ນ L3 ລາຄາ 250,000 ກີບ/1 (ຈຳນວນ 100 ກ່ອງ) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 10% · L2 6% · L3 3% · L4 1% · L3 Price: 250,000 kip/1 (Qty 100) with monthly commission.',
+        'ຊັ້ນ L3 ລາຄາ 250,000 ກີບ/1 (ຈຳນວນ 100 ກ່ອງ) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 15% · L2 10% · L3 7% · L4 5% · L3 Price: 250,000 kip/1 (Qty 100) with monthly commission.',
       retailPrice: 250000 / 600,
       memberPrice: 250000 / 600,
       pv: 250000 / 600,
@@ -1249,7 +1249,7 @@ export function getInitialProducts(ownerId: string): Product[] {
       name: 'L4 ຄຣີມໄຂ່ມຸກ PL Pearl Care Face (200,000 ₭/1 · ຈຳນວນ 500) / L4 PL Pearl Care Face Cream (200,000 ₭/1 · Qty 500)',
       category: 'Wholesale Packages / ແພັກເກັດຕົວແທນຈຳໜ່າຍ',
       description:
-        'ຊັ້ນ L4 ລາຄາ 200,000 ກີບ/1 (ຈຳນວນ 500 ກ່ອງ) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 10% · L2 6% · L3 3% · L4 1% · L4 Price: 200,000 kip/1 (Qty 500) with monthly commission.',
+        'ຊັ້ນ L4 ລາຄາ 200,000 ກີບ/1 (ຈຳນວນ 500 ກ່ອງ) · ຄອມມິດຊັ່ນ 4 ຊັ້ນຈ່າຍລາຍເດືອນ: L1 15% · L2 10% · L3 7% · L4 5% · L4 Price: 200,000 kip/1 (Qty 500) with monthly commission.',
       retailPrice: 200000 / 600,
       memberPrice: 200000 / 600,
       pv: 200000 / 600,
@@ -1469,7 +1469,7 @@ export function getInitialOrders(ownerId: string): Order[] {
       unitPrice: 200000 / 600,
       totalAmount: 200000 / 600,
       totalPv: 200000 / 600,
-      totalCommissionGenerated: (200000 / 600) * 0.2,
+      totalCommissionGenerated: (200000 / 600) * 0.37,
       status: 'fulfilled',
       paymentMethod: 'bank_qr',
       paymentRef: 'BCEL-QR-998102',
@@ -1493,7 +1493,7 @@ export function getInitialOrders(ownerId: string): Order[] {
       unitPrice: 350000 / 600,
       totalAmount: 350000 / 600,
       totalPv: 350000 / 600,
-      totalCommissionGenerated: (350000 / 600) * 0.2,
+      totalCommissionGenerated: (350000 / 600) * 0.37,
       status: 'fulfilled',
       paymentMethod: 'bank_qr',
       paymentRef: 'BCEL-QR-998245',
@@ -1517,9 +1517,9 @@ export function getInitialCommissions(ownerId: string): Commission[] {
       sourceDistributorId: 'dist_l4_lucas',
       sourceDistributorName: 'Pl Skincare4 (ສະມາຊິກ L4 · ຊັ້ນທີ 4)',
       unilevelTier: 1,
-      percentageRate: 10,
+      percentageRate: 15,
       basePv: 1000,
-      commissionAmount: 100,
+      commissionAmount: 150,
       payoutStatus: 'pending',
     },
     {
@@ -1532,9 +1532,9 @@ export function getInitialCommissions(ownerId: string): Commission[] {
       sourceDistributorId: 'dist_l4_lucas',
       sourceDistributorName: 'Pl Skincare4 (ສະມາຊິກ L4 · ຊັ້ນທີ 4)',
       unilevelTier: 2,
-      percentageRate: 6,
+      percentageRate: 10,
       basePv: 1000,
-      commissionAmount: 60,
+      commissionAmount: 100,
       payoutStatus: 'pending',
     },
     {
@@ -1547,9 +1547,9 @@ export function getInitialCommissions(ownerId: string): Commission[] {
       sourceDistributorId: 'dist_l4_lucas',
       sourceDistributorName: 'Pl Skincare4 (ສະມາຊິກ L4 · ຊັ້ນທີ 4)',
       unilevelTier: 3,
-      percentageRate: 3,
+      percentageRate: 7,
       basePv: 1000,
-      commissionAmount: 30,
+      commissionAmount: 70,
       payoutStatus: 'pending',
     },
     {
@@ -1562,9 +1562,9 @@ export function getInitialCommissions(ownerId: string): Commission[] {
       sourceDistributorId: 'dist_l4_lucas',
       sourceDistributorName: 'Pl Skincare4 (ສະມາຊິກ L4 · ຊັ້ນທີ 4)',
       unilevelTier: 4,
-      percentageRate: 1,
+      percentageRate: 5,
       basePv: 1000,
-      commissionAmount: 10,
+      commissionAmount: 50,
       payoutStatus: 'pending',
     },
   ];

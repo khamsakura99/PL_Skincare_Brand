@@ -390,7 +390,7 @@ const LO_DICT: TranslationDict = {
   memberOrderPvLabel: 'ຍອດຄິດໄລ່ຄ່າຄອມມິດຊັ່ນ:',
   memberDownlineTitle: 'ທີມງານໃຕ້ສາຍງານ 4 ຊັ້ນຂອງຂ້ອຍ',
   memberDownlineSubtitle:
-    'ເບິ່ງລາຍຊື່ຕົວແທນທີ່ຢູ່ໃຕ້ສາຍງານຂອງທ່ານທັງ 4 ຊັ້ນ ພ້ອມອັດຕາຄ່າຄອມມິດຊັ່ນແຕ່ລະຊັ້ນ (L1 15% · L2 8% · L3 5% · L4 3%).',
+    'ເບິ່ງລາຍຊື່ຕົວແທນທີ່ຢູ່ໃຕ້ສາຍງານຂອງທ່ານທັງ 4 ຊັ້ນ ພ້ອມອັດຕາຄ່າຄອມມິດຊັ່ນແຕ່ລະຊັ້ນ (L1 15% · L2 10% · L3 7% · L4 5%).',
   memberCommissionRateLabel: 'ອັດຕາຄອມມິດຊັ່ນ',
   memberNoDownlineInTier: 'ຍັງບໍ່ມີສະມາຊິກໃນຊັ້ນນີ້ຂອງ',
   memberSignInAsThisPartner: 'ເຂົ້າລະບົບບັນຊີນີ້',
