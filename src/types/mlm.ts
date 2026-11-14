@@ -37,10 +37,16 @@ export const VALIDATION_CONSTRAINTS = {
   },
   ORDER: {
     ORDER_NUMBER_MAX: 40,
+    ORDER_DATE_MAX: 32,
     CUSTOMER_NAME_MAX: 100,
     QUANTITY_MAX: 10000,
     PAYMENT_METHOD_MAX: 40,
     PAYMENT_REF_MAX: 100,
+    SHIPPING_PROVIDER_MAX: 80,
+    SHIPPING_BRANCH_MAX: 120,
+    SHIPPING_PHONE_MAX: 40,
+    SHIPPING_TRACKING_MAX: 60,
+    BILLING_ADDRESS_MAX: 300,
   },
   SETTINGS: {
     BRAND_NAME_MAX: 80,
@@ -65,8 +71,16 @@ export const VALIDATION_CONSTRAINTS = {
  */
 export const LAK_PER_THB = 600;
 
+export function toKipInt(amountBase: number): number {
+  return Math.round((Number(amountBase) || 0) * LAK_PER_THB);
+}
+
+export function kipToBase(kip: number): number {
+  return Math.round(Number(kip) || 0) / LAK_PER_THB;
+}
+
 export function formatKip(amountBase: number): string {
-  const kip = Math.round((Number(amountBase) || 0) * LAK_PER_THB);
+  const kip = toKipInt(amountBase);
   return `${kip.toLocaleString('en-US')} ₭`;
 }
 
@@ -896,6 +910,7 @@ export interface Order {
   shippingBranch?: string;
   shippingPhone?: string;
   shippingTrackingNo?: string;
+  billingAddress?: string;
   orderDate?: string; // YYYY-MM-DD date for Daily Order Bill Report
   createdAt?: unknown;
   updatedAt?: unknown;
@@ -931,23 +946,28 @@ export function extractOrderShippingInfo(order: Order): {
   branch: string;
   phone: string;
   trackingNo: string;
+  billingAddress: string;
   cleanPaymentRef: string;
 } {
   const rawRef = order.paymentRef || '';
   if (rawRef.includes('|SHIP:')) {
     const [payPart, shipPart] = rawRef.split('|SHIP:');
     const [prov, br, ph, trk] = (shipPart || '').split('~');
+    const resolvedBranch =
+      order.shippingBranch ||
+      br ||
+      'ສາຂາ ນະຄອນຫຼວງວຽງຈັນ (Vientiane Capital)';
     return {
       provider: order.shippingProvider || prov || 'Anousith Logistics',
-      branch:
-        order.shippingBranch ||
-        br ||
-        'ສາຂາ ນະຄອນຫຼວງວຽງຈັນ (Vientiane Capital)',
+      branch: resolvedBranch,
       phone: order.shippingPhone || ph || '020 5588 9911',
       trackingNo:
         order.shippingTrackingNo ||
         trk ||
         `ANS-${order.orderNumber.replace(/[^0-9]/g, '') || '1001'}`,
+      billingAddress:
+        order.billingAddress ||
+        resolvedBranch,
       cleanPaymentRef: payPart || 'VERIFIED',
     };
   }
@@ -955,14 +975,16 @@ export function extractOrderShippingInfo(order: Order): {
     order.shippingProvider ||
     (order.orderNumber.endsWith('2') ? 'HAL Logistics' : 'Anousith Logistics');
   const prefix = defaultProvider.toLowerCase().includes('hal') ? 'HAL' : 'ANS';
+  const resolvedBranch =
+    order.shippingBranch || 'ສາຂາ ນະຄອນຫຼວງວຽງຈັນ (Vientiane Main Hub)';
   return {
     provider: defaultProvider,
-    branch:
-      order.shippingBranch || 'ສາຂາ ນະຄອນຫຼວງວຽງຈັນ (Vientiane Main Hub)',
+    branch: resolvedBranch,
     phone: order.shippingPhone || '020 5588 9911',
     trackingNo:
       order.shippingTrackingNo ||
       `${prefix}-${order.orderNumber.replace(/[^0-9]/g, '') || '1001'}88`,
+    billingAddress: order.billingAddress || resolvedBranch,
     cleanPaymentRef: rawRef || 'VERIFIED',
   };
 }
@@ -1068,13 +1090,14 @@ export function calculateUnilevelSplit(
       rate > 0 &&
       totalPv > 0
     ) {
-      const rawAmount = (totalPv * rate) / 100;
-      const commissionAmount = Math.round(rawAmount * 100) / 100;
+      const totalLak = toKipInt(totalPv);
+      const commLak = Math.round((totalLak * rate) / 100);
+      const commissionAmount = kipToBase(commLak);
       payouts.push({
         unilevelTier: tier,
         beneficiary: distributor,
         percentageRate: rate,
-        basePv: totalPv,
+        basePv: kipToBase(totalLak),
         commissionAmount,
       });
     }
@@ -1477,6 +1500,8 @@ export function getInitialOrders(ownerId: string): Order[] {
       shippingBranch: 'ສາຂາ ນະຄອນຫຼວງວຽງຈັນ (Vientiane Capital Main Hub)',
       shippingPhone: '020 5588 9911',
       shippingTrackingNo: 'ANS-100188',
+      billingAddress:
+        'ບ້ານຮ່ອງໄກ່ແກ້ວ, ເມືອງຈັນທະບູລີ, ນະຄອນຫຼວງວຽງຈັນ (ຮັບຜ່ານ Anousith Hub)',
     },
     {
       id: 'ord_sample_1002',
@@ -1484,7 +1509,7 @@ export function getInitialOrders(ownerId: string): Order[] {
       orderNumber: 'ORD-1002',
       orderDate: todayIso,
       customerName: 'Pl Skincare2',
-      orderType: 'retail',
+      orderType: 'member',
       referringDistributorId: 'dist_l1_claire',
       referringDistributorName: 'Pl Skincare1 (ສະມາຊິກ L1 · ຊັ້ນທີ 1)',
       productId: 'prod_botanical_serum',
@@ -1501,6 +1526,8 @@ export function getInitialOrders(ownerId: string): Order[] {
       shippingBranch: 'ສາຂາ ດົງໂດກ (Dongdok Branch)',
       shippingPhone: '020 9977 3344',
       shippingTrackingNo: 'HAL-100288',
+      billingAddress:
+        'ບ້ານດົງໂດກ, ເມືອງໄຊທານີ, ນະຄອນຫຼວງວຽງຈັນ (ສາຂາ HAL ດົງໂດກ)',
     },
   ];
 }

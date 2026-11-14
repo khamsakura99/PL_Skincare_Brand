@@ -66,6 +66,7 @@ import {
   Mail,
   Image as ImageIcon,
   Link2,
+  Tag,
 } from 'lucide-react';
 import {
   auth,
@@ -118,6 +119,8 @@ import {
   calculateUnilevelSplit,
   determineRank,
   formatMoney,
+  toKipInt,
+  kipToBase,
   LAK_PER_THB,
   DEFAULT_PRODUCT_CATEGORIES,
   PL_BRAND_IMAGE_GALLERY,
@@ -172,6 +175,7 @@ type MemberSubPanel =
 
 type AdminSubPanel =
   | 'overview'
+  | 'daily_member_bills'
   | 'excel_reports'
   | 'company_profile'
   | 'marketing_brochure'
@@ -502,19 +506,8 @@ export default function App() {
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [copiedPkgTier, setCopiedPkgTier] = useState<string | null>(null);
 
-  // Member Shopping Cart & Bank QR Code Payment Checkout State
-  const [memberCart, setMemberCart] = useState<CartItem[]>([
-    {
-      id: 'cart_pkg_Gold',
-      kind: 'package',
-      packageTier: 'Gold Pro',
-      productId: 'prod_essential_oil_kit',
-      titleLo: 'ແພັກເກັດ Gold Pro (3 ກ່ອງ) — ຊຸດນ້ຳມັນບຳລຸງຜິວ Essential Oil',
-      titleEn: 'Gold Pro Package (3 Boxes) — Botanical Essential Oil Kit',
-      unitPrice: 3000,
-      quantity: 1,
-    },
-  ]);
+  // Member Shopping Cart & Bank QR Code Payment Checkout State (starts empty)
+  const [memberCart, setMemberCart] = useState<CartItem[]>([]);
   const [bankQrMethods, setBankQrMethods] = useState<CompanyBankQrMethod[]>(
     () => getInitialBankQrMethods()
   );
@@ -559,6 +552,9 @@ export default function App() {
   );
   const [shippingRecipientPhone, setShippingRecipientPhone] =
     useState<string>('020 5588 9911');
+  const [shippingBillingAddress, setShippingBillingAddress] = useState<string>(
+    'ບ້ານຮ່ອງໄກ່ແກ້ວ, ເມືອງຈັນທະບູລີ, ນະຄອນຫຼວງວຽງຈັນ'
+  );
   const [showShippingForm, setShowShippingForm] = useState<boolean>(false);
   const [editingShipping, setEditingShipping] =
     useState<ShippingLogisticsMethod | null>(null);
@@ -870,6 +866,10 @@ export default function App() {
   const [dailyReportStatusFilter, setDailyReportStatusFilter] = useState<
     'all' | 'fulfilled' | 'processing' | 'cancelled'
   >('all');
+  const [dailyMemberBillTypeFilter, setDailyMemberBillTypeFilter] = useState<
+    'all' | 'member' | 'retail'
+  >('all');
+  const [dailyMemberBillSearch, setDailyMemberBillSearch] = useState<string>('');
 
   // Image Resilience State
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
@@ -1848,19 +1848,34 @@ export default function App() {
   };
 
   // Add Member Package to Shopping Cart & Go to Checkout or Stay
+  // Each CartItem stores unitPrice per 1 box (in THB base) and quantity = exact number of boxes.
   const handleAddPackageToCart = (
     pkg: MemberPackagePlan,
     goToCheckout = true
   ) => {
     const pkgProduct =
       products.find((p) => p.id === pkg.productId) || products[0];
+    const pkgBoxes = Math.max(1, Math.round(pkg.quantity || 1));
+    const unitBoxLak =
+      pkg.priceLak && pkg.priceLak > 0
+        ? Math.round(pkg.priceLak)
+        : toKipInt(pkg.price);
+    const unitBoxPriceBase = kipToBase(unitBoxLak);
+    const pkgLabelLo =
+      pkg.nameLo || localizePackageTier(pkg.tier, 'lo', settings.currencySymbol);
+    const pkgLabelEn =
+      pkg.nameEn || localizePackageTier(pkg.tier, 'en', settings.currencySymbol);
     const cartItemId = `cart_pkg_${pkg.tier}`;
     setMemberCart((prev) => {
       const existing = prev.find((item) => item.id === cartItemId);
       if (existing) {
         return prev.map((item) =>
           item.id === cartItemId
-            ? { ...item, quantity: item.quantity + 1 }
+            ? {
+                ...item,
+                unitPrice: unitBoxPriceBase,
+                quantity: item.quantity + pkgBoxes,
+              }
             : item
         );
       }
@@ -1871,10 +1886,10 @@ export default function App() {
           kind: 'package',
           packageTier: pkg.tier,
           productId: pkgProduct ? pkgProduct.id : pkg.productId,
-          titleLo: `${localizePackageTier(pkg.tier, 'lo', settings.currencySymbol)} (${pkg.quantity} ກ່ອງ) — ${pkgProduct ? localizeProductName(pkgProduct, 'lo') : pkg.tier}`,
-          titleEn: `${localizePackageTier(pkg.tier, 'en', settings.currencySymbol)} (${pkg.quantity} Boxes) — ${pkgProduct ? localizeProductName(pkgProduct, 'en') : pkg.tier}`,
-          unitPrice: pkg.price,
-          quantity: 1,
+          titleLo: `${pkgLabelLo} — ${pkgProduct ? localizeProductName(pkgProduct, 'lo') : pkg.tier}`,
+          titleEn: `${pkgLabelEn} — ${pkgProduct ? localizeProductName(pkgProduct, 'en') : pkg.tier}`,
+          unitPrice: unitBoxPriceBase,
+          quantity: pkgBoxes,
         },
       ];
     });
@@ -1882,8 +1897,8 @@ export default function App() {
       setMemberSubPanel('cart_checkout');
     }
     showNotice(
-      `ເພີ່ມ ${localizePackageTier(pkg.tier, 'lo', settings.currencySymbol)} ລົງໃນກະຕ່າສິນຄ້າແລ້ວ! ພ້ອມຊຳລະເງິນດ້ວຍ Bank QR Code.`,
-      `Added ${localizePackageTier(pkg.tier, 'en', settings.currencySymbol)} to your cart! Ready for Bank QR Code checkout.`
+      `ເພີ່ມ ${pkgLabelLo} (${pkgBoxes} ກ່ອງ × ${unitBoxLak.toLocaleString('en-US')} ₭) ລົງໃນກະຕ່າສິນຄ້າແລ້ວ!`,
+      `Added ${pkgLabelEn} (${pkgBoxes} boxes × ${unitBoxLak.toLocaleString('en-US')} ₭) to your cart!`
     );
   };
 
@@ -1894,9 +1909,10 @@ export default function App() {
     goToCheckout = false
   ) => {
     const isL5General = isGeneralBuyerL5(activeMember);
-    const effectivePrice = isL5General
-      ? product.retailPrice
-      : product.memberPrice;
+    const effectivePrice = kipToBase(
+      toKipInt(isL5General ? product.retailPrice : product.memberPrice)
+    );
+    const safeQty = Math.max(1, Math.round(qty || 1));
     const cartItemId = `cart_prod_${product.id}`;
     setMemberCart((prev) => {
       const existing = prev.find((item) => item.id === cartItemId);
@@ -1906,7 +1922,7 @@ export default function App() {
             ? {
                 ...item,
                 unitPrice: effectivePrice,
-                quantity: item.quantity + qty,
+                quantity: item.quantity + safeQty,
               }
             : item
         );
@@ -1920,7 +1936,7 @@ export default function App() {
           titleLo: localizeProductName(product, 'lo'),
           titleEn: localizeProductName(product, 'en'),
           unitPrice: effectivePrice,
-          quantity: qty,
+          quantity: safeQty,
         },
       ];
     });
@@ -1946,6 +1962,15 @@ export default function App() {
             : item
         )
         .filter((item) => item.quantity > 0)
+    );
+  };
+
+  const handleSetCartQty = (cartItemId: string, nextQty: number) => {
+    const cleanQty = Math.min(10000, Math.max(1, Math.round(nextQty || 1)));
+    setMemberCart((prev) =>
+      prev.map((item) =>
+        item.id === cartItemId ? { ...item, quantity: cleanQty } : item
+      )
     );
   };
 
@@ -2004,17 +2029,15 @@ export default function App() {
       VALIDATION_CONSTRAINTS.ORDER.CUSTOMER_NAME_MAX
     );
 
-    const totalCartAmountThb =
-      Math.round(
-        memberCart.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0) * 100
-      ) / 100;
-    const totalBoxesCount = memberCart.reduce((sum, i) => {
-      if (i.kind === 'package' && i.packageTier) {
-        const plan = packages.find((p) => p.tier === i.packageTier);
-        return sum + (plan ? plan.quantity * i.quantity : i.quantity);
-      }
-      return sum + i.quantity;
-    }, 0);
+    const totalCartLak = memberCart.reduce(
+      (sum, i) => sum + toKipInt(i.unitPrice) * Math.max(1, Math.round(i.quantity)),
+      0
+    );
+    const totalCartAmountThb = kipToBase(totalCartLak);
+    const totalBoxesCount = memberCart.reduce(
+      (sum, i) => sum + Math.max(1, Math.round(i.quantity)),
+      0
+    );
 
     const primaryItem = memberCart[0];
     const primaryProduct =
@@ -2022,7 +2045,7 @@ export default function App() {
 
     const summaryProductName = sanitizeString(
       memberCart
-        .map((i) => `${i.titleEn} x${i.quantity}`)
+        .map((i) => `${i.titleEn} x${Math.max(1, Math.round(i.quantity))}`)
         .join(' + '),
       VALIDATION_CONSTRAINTS.PRODUCT.NAME_MAX
     );
@@ -2057,10 +2080,9 @@ export default function App() {
       distributors,
       settings
     );
-    const totalCommission =
-      Math.round(
-        unilevelSplits.reduce((sum, s) => sum + s.commissionAmount, 0) * 100
-      ) / 100;
+    const totalCommission = kipToBase(
+      unilevelSplits.reduce((sum, s) => sum + toKipInt(s.commissionAmount), 0)
+    );
     const totalBillAmountThb = totalCartAmountThb;
 
     // Determine highest package tier purchased in cart
@@ -2092,10 +2114,20 @@ export default function App() {
       }
     }
 
+    const todayStrCart = new Date().toISOString().slice(0, 10);
+    const cleanBillingAddrCart = sanitizeString(
+      shippingBillingAddress.trim() || shippingBranch,
+      VALIDATION_CONSTRAINTS.ORDER.BILLING_ADDRESS_MAX
+    );
+    const cleanShippingPhoneCart = sanitizeString(
+      shippingRecipientPhone || activeMember.phone || '020 5588 9911',
+      VALIDATION_CONSTRAINTS.ORDER.SHIPPING_PHONE_MAX
+    );
     const newOrder: Order = {
       id: orderId,
       ownerId,
       orderNumber,
+      orderDate: todayStrCart,
       customerName: cleanCustomer,
       orderType: isL5General ? 'retail' : 'member',
       referringDistributorId: activeMember.id,
@@ -2103,20 +2135,20 @@ export default function App() {
       productId: primaryProduct ? primaryProduct.id : 'prod_botanical_serum',
       productName: summaryProductName,
       quantity: totalBoxesCount,
-      unitPrice:
-        Math.round(
-          (totalBillAmountThb / Math.max(1, totalBoxesCount)) * 100
-        ) / 100,
+      unitPrice: kipToBase(
+        Math.round(totalCartLak / Math.max(1, totalBoxesCount))
+      ),
       totalAmount: totalBillAmountThb,
-      totalPv: totalCartAmountThb,
+      totalPv: isL5General ? 0 : totalCartAmountThb,
       totalCommissionGenerated: isL5General ? 0 : totalCommission,
       status: 'fulfilled',
       paymentMethod: 'bank_qr',
       paymentRef: paymentRefClean,
       shippingProvider: selectedShippingProvider,
       shippingBranch: shippingBranch,
-      shippingPhone: shippingRecipientPhone || activeMember.phone || '020 5588 9911',
+      shippingPhone: cleanShippingPhoneCart,
       shippingTrackingNo: trackingNo,
+      billingAddress: cleanBillingAddrCart,
     };
 
     const newCommissions: Commission[] = unilevelSplits.map((split) => ({
@@ -2201,6 +2233,7 @@ export default function App() {
         batch.set(doc(db, 'orders', orderId), {
           ownerId,
           orderNumber: newOrder.orderNumber,
+          orderDate: newOrder.orderDate || todayStrCart,
           customerName: newOrder.customerName,
           orderType: newOrder.orderType,
           referringDistributorId: newOrder.referringDistributorId,
@@ -2215,6 +2248,20 @@ export default function App() {
           status: newOrder.status,
           paymentMethod: 'bank_qr',
           paymentRef: paymentRefClean,
+          shippingProvider: sanitizeString(
+            selectedShippingProvider,
+            VALIDATION_CONSTRAINTS.ORDER.SHIPPING_PROVIDER_MAX
+          ),
+          shippingBranch: sanitizeString(
+            shippingBranch,
+            VALIDATION_CONSTRAINTS.ORDER.SHIPPING_BRANCH_MAX
+          ),
+          shippingPhone: cleanShippingPhoneCart,
+          shippingTrackingNo: sanitizeString(
+            trackingNo,
+            VALIDATION_CONSTRAINTS.ORDER.SHIPPING_TRACKING_MAX
+          ),
+          billingAddress: cleanBillingAddrCart,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -2369,22 +2416,38 @@ export default function App() {
     const newProductStatus =
       newStock <= pkgProduct.reorderLevel ? 'low_stock' : 'active';
 
+    const pkgBoxes = Math.max(1, Math.round(pkg.quantity || 1));
+    const unitBoxLak =
+      pkg.priceLak && pkg.priceLak > 0
+        ? Math.round(pkg.priceLak)
+        : toKipInt(pkg.price);
+    const totalPkgLak = unitBoxLak * pkgBoxes;
+    const unitBoxBase = kipToBase(unitBoxLak);
+    const totalPkgBill = kipToBase(totalPkgLak);
+
     const unilevelSplits = isZeroCommPkg
       ? []
       : calculateUnilevelSplit(
           activeMember.id,
-          pkg.price,
+          totalPkgBill,
           distributors,
           settings
         );
     const totalPkgCommission = isZeroCommPkg
       ? 0
-      : Math.round(
-          unilevelSplits.reduce((sum, s) => sum + s.commissionAmount, 0) * 100
-        ) / 100;
-    const totalPkgBill = pkg.price;
+      : kipToBase(
+          unilevelSplits.reduce((sum, s) => sum + toKipInt(s.commissionAmount), 0)
+        );
 
     const todayStr = new Date().toISOString().slice(0, 10);
+    const cleanBillingAddrPkg = sanitizeString(
+      shippingBillingAddress.trim() || shippingBranch,
+      VALIDATION_CONSTRAINTS.ORDER.BILLING_ADDRESS_MAX
+    );
+    const cleanShippingPhonePkg = sanitizeString(
+      shippingRecipientPhone || activeMember.phone || '020 5588 9911',
+      VALIDATION_CONSTRAINTS.ORDER.SHIPPING_PHONE_MAX
+    );
     const newOrder: Order = {
       id: orderId,
       ownerId,
@@ -2396,16 +2459,18 @@ export default function App() {
       referringDistributorName: activeMember.fullName,
       productId: pkgProduct.id,
       productName: `${pkg.tier} — ${pkgProduct.name}`,
-      quantity: pkg.quantity,
-      unitPrice:
-        Math.round((totalPkgBill / Math.max(1, pkg.quantity)) * 100) /
-        100,
+      quantity: pkgBoxes,
+      unitPrice: unitBoxBase,
       totalAmount: totalPkgBill,
-      totalPv: pkg.pv,
+      totalPv: isZeroCommPkg ? 0 : totalPkgBill,
       totalCommissionGenerated: totalPkgCommission,
       status: 'fulfilled',
       paymentMethod: 'bank_qr',
       paymentRef: `QR-PKG-${pkg.tier.toUpperCase()}-${tsSuffix}`,
+      shippingProvider: selectedShippingProvider,
+      shippingBranch: shippingBranch,
+      shippingPhone: cleanShippingPhonePkg,
+      billingAddress: cleanBillingAddrPkg,
     };
 
     const newCommissions: Commission[] = unilevelSplits.map((split) => ({
@@ -2488,6 +2553,7 @@ export default function App() {
         batch.set(doc(db, 'orders', orderId), {
           ownerId,
           orderNumber: newOrder.orderNumber,
+          orderDate: todayStr,
           customerName: newOrder.customerName,
           orderType: newOrder.orderType,
           referringDistributorId: newOrder.referringDistributorId,
@@ -2505,6 +2571,16 @@ export default function App() {
           status: newOrder.status,
           paymentMethod: 'bank_qr',
           paymentRef: newOrder.paymentRef,
+          shippingProvider: sanitizeString(
+            selectedShippingProvider,
+            VALIDATION_CONSTRAINTS.ORDER.SHIPPING_PROVIDER_MAX
+          ),
+          shippingBranch: sanitizeString(
+            shippingBranch,
+            VALIDATION_CONSTRAINTS.ORDER.SHIPPING_BRANCH_MAX
+          ),
+          shippingPhone: cleanShippingPhonePkg,
+          billingAddress: cleanBillingAddrPkg,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -3806,7 +3882,7 @@ export default function App() {
 
   // Company Full Receipt Base Amount (350k / 300k / 250k / 200k / 380k Kip × Qty)
   const orderTotalPv = useMemo(
-    () => Math.round(companyBaseUnitPrice * orderQuantity * 100) / 100,
+    () => kipToBase(toKipInt(companyBaseUnitPrice) * orderQuantity),
     [companyBaseUnitPrice, orderQuantity]
   );
 
@@ -3822,12 +3898,12 @@ export default function App() {
 
   const totalPreviewCommission = useMemo(
     () =>
-      Math.round(
+      kipToBase(
         previewUnilevelSplit.reduce(
-          (acc, item) => acc + item.commissionAmount,
+          (acc, item) => acc + toKipInt(item.commissionAmount),
           0
-        ) * 100
-      ) / 100,
+        )
+      ),
     [previewUnilevelSplit]
   );
 
@@ -4437,6 +4513,14 @@ export default function App() {
     );
 
     const todayStr = new Date().toISOString().slice(0, 10);
+    const cleanBillingAddrPos = sanitizeString(
+      shippingBillingAddress.trim() || shippingBranch,
+      VALIDATION_CONSTRAINTS.ORDER.BILLING_ADDRESS_MAX
+    );
+    const cleanShippingPhonePos = sanitizeString(
+      shippingRecipientPhone || selectedReferrer.phone || '020 5588 9911',
+      VALIDATION_CONSTRAINTS.ORDER.SHIPPING_PHONE_MAX
+    );
     const newOrder: Order = {
       id: orderId,
       ownerId,
@@ -4458,8 +4542,9 @@ export default function App() {
       paymentRef: posPayRef,
       shippingProvider: selectedShippingProvider,
       shippingBranch: shippingBranch,
-      shippingPhone: shippingRecipientPhone || '020 5588 9911',
+      shippingPhone: cleanShippingPhonePos,
       shippingTrackingNo: trackingNo,
+      billingAddress: cleanBillingAddrPos,
     };
 
     const newCommissions: Commission[] = previewUnilevelSplit.map((split) => ({
@@ -4531,6 +4616,7 @@ export default function App() {
         batch.set(doc(db, 'orders', orderId), {
           ownerId,
           orderNumber: newOrder.orderNumber,
+          orderDate: todayStr,
           customerName: newOrder.customerName,
           orderType: newOrder.orderType,
           referringDistributorId: newOrder.referringDistributorId,
@@ -4545,6 +4631,20 @@ export default function App() {
           status: newOrder.status,
           paymentMethod: 'bank_qr',
           paymentRef: posPayRef,
+          shippingProvider: sanitizeString(
+            selectedShippingProvider,
+            VALIDATION_CONSTRAINTS.ORDER.SHIPPING_PROVIDER_MAX
+          ),
+          shippingBranch: sanitizeString(
+            shippingBranch,
+            VALIDATION_CONSTRAINTS.ORDER.SHIPPING_BRANCH_MAX
+          ),
+          shippingPhone: cleanShippingPhonePos,
+          shippingTrackingNo: sanitizeString(
+            trackingNo,
+            VALIDATION_CONSTRAINTS.ORDER.SHIPPING_TRACKING_MAX
+          ),
+          billingAddress: cleanBillingAddrPos,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -6464,8 +6564,8 @@ export default function App() {
     const cleanTier = sanitizeString(packageForm.tier.trim(), 60);
     if (!cleanTier) return;
 
-    const rawPrice = Math.max(0, Number(packageForm.price) || 0);
-    const basePriceThb = rawPrice / LAK_PER_THB;
+    const rawPriceLak = Math.max(0, Math.round(Number(packageForm.price) || 0));
+    const basePriceThb = kipToBase(rawPriceLak);
     const cleanQty = Math.max(1, Math.round(Number(packageForm.quantity) || 1));
     const isL5Zero =
       packageForm.levelNumber === 5 || Boolean(packageForm.noCommissionL5);
@@ -6479,8 +6579,8 @@ export default function App() {
       nameLo: packageForm.nameLo.trim() || cleanTier,
       nameEn: packageForm.nameEn.trim() || cleanTier,
       price: basePriceThb,
-      priceLak: Math.round(basePriceThb * LAK_PER_THB),
-      pv: basePriceThb,
+      priceLak: rawPriceLak,
+      pv: isL5Zero ? 0 : basePriceThb,
       productId:
         packageForm.productId ||
         (products[0] ? products[0].id : 'prod_botanical_serum'),
@@ -9220,6 +9320,18 @@ export default function App() {
       try {
         await updateDoc(doc(db, 'orders', ord.id), {
           paymentRef: nextPayRef,
+          shippingProvider: sanitizeString(
+            nextProvider,
+            VALIDATION_CONSTRAINTS.ORDER.SHIPPING_PROVIDER_MAX
+          ),
+          shippingBranch: sanitizeString(
+            finalBranch,
+            VALIDATION_CONSTRAINTS.ORDER.SHIPPING_BRANCH_MAX
+          ),
+          shippingTrackingNo: sanitizeString(
+            nextTracking,
+            VALIDATION_CONSTRAINTS.ORDER.SHIPPING_TRACKING_MAX
+          ),
           updatedAt: serverTimestamp(),
         });
       } catch (error) {
@@ -9488,10 +9600,11 @@ export default function App() {
     const sponsorLabel = billReferrer
       ? `${billReferrer.code} (${localizePersonName(billReferrer.fullName, lang)})`
       : localizePersonName(target.referringDistributorName, lang);
+    const totalLakBill = toKipInt(target.totalAmount);
     const unitAmount =
       target.quantity > 0
-        ? target.totalAmount / target.quantity
-        : target.totalAmount;
+        ? kipToBase(Math.round(totalLakBill / target.quantity))
+        : kipToBase(totalLakBill);
 
     const commRowsHtml =
       billComms.length === 0
@@ -9575,9 +9688,12 @@ export default function App() {
       </div>
 
       <div class="ship-box">
-        <div style="font-size:11px;font-weight:700;color:#8B6528;text-transform:uppercase;">🚚 ບໍລິສັດຂົນສົ່ງທາງການ (Logistics), ຈັດສົ່ງດ່ວນທົ່ວປະເທດ 1–2 ມື້ (L1–L5)</div>
+        <div style="font-size:11px;font-weight:700;color:#8B6528;text-transform:uppercase;">🚚 ບໍລິສັດຂົນສົ່ງທາງການ & ທີ່ຢູ່ຈັດສົ່ງສະມາຊິກ (Logistics & Member Billing Address)</div>
         <div style="font-size:16px;font-weight:800;color:#2E1A0F;margin-top:3px;">${billShip.provider} — Waybill: ${billShip.trackingNo}</div>
-        <div style="font-size:12px;color:#3f3f46;margin-top:3px;">ສາຂາປາຍທາງ (Branch): <strong>${billShip.branch}</strong> | ໂທຜູ້ຮັບ (Tel): <strong>${billShip.phone}</strong></div>
+        <div style="font-size:12px;color:#18181b;margin-top:4px;background:#ffffff;border:1px dashed #C89D54;border-radius:6px;padding:6px 10px;">
+          <strong>📍 ທີ່ຢູ່ຈັດສົ່ງ / Billing Address:</strong> ${escapeHtmlCell(billShip.billingAddress)}
+        </div>
+        <div style="font-size:12px;color:#3f3f46;margin-top:4px;">ສາຂາປາຍທາງ (Branch): <strong>${escapeHtmlCell(billShip.branch)}</strong> | ໂທຜູ້ຮັບ (Tel): <strong>${escapeHtmlCell(billShip.phone)}</strong></div>
       </div>
 
       <table>
@@ -9658,6 +9774,178 @@ export default function App() {
       `ກຳລັງເປີດໜ້າຕ່າງເຄື່ອງພິມສຳລັບໃບບິນ ${target.orderNumber}...`,
       `Opening printer dialog for Invoice Bill ${target.orderNumber}...`,
       false
+    );
+  };
+
+  // Build Printable Billing & Shipping Address Parcel Slip HTML (Single Order or Batch Daily Orders)
+  const buildBillingAddressPrintHtmlDocument = async (
+    targetOrders: Order[],
+    labelSize: 'a4' | '80mm' = 'a4'
+  ): Promise<string> => {
+    const embeddedLogoSrc = await resolveEmbeddedLogoDataUrl(
+      companyProfile.logoUrl
+    );
+    const isThermal = labelSize === '80mm';
+    const maxWidthCss = isThermal ? '340px' : '820px';
+
+    const labelsHtml = targetOrders
+      .map((ord) => {
+        const ship = extractOrderShippingInfo(ord);
+        const ordDateStr = getOrderDateString(ord);
+        const refMember = distributors.find(
+          (d) =>
+            d.id === ord.referringDistributorId ||
+            d.fullName === ord.customerName ||
+            d.code === ord.customerName
+        );
+        const memberCodeBadge = refMember ? ` [${refMember.code}]` : '';
+        const recipientName = localizePersonName(ord.customerName, lang);
+        const productTitle = localizeProductNameByRaw(
+          ord.productName,
+          ord.productId,
+          lang
+        );
+
+        return `<div class="parcel-label">
+          <div class="label-top">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <img src="${embeddedLogoSrc}" alt="PL Skincare" style="width:40px;height:40px;border-radius:8px;object-fit:cover;border:1.5px solid #E5C158;" />
+              <div>
+                <div style="font-size:10px;letter-spacing:1px;color:#E5C158;font-weight:800;">PL SKINCARE BRAND · PARCEL & BILLING ADDRESS</div>
+                <div style="font-size:14px;font-weight:800;color:#FFFFFF;">ໃບປະໜ້າທີ່ຢູ່ຈັດສົ່ງສະມາຊິກ · SHIPPING LABEL</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:10px;color:#E5C158;">BILL / ORDER NO.</div>
+              <div style="font-size:15px;font-weight:800;font-family:monospace;color:#FFFFFF;">${escapeHtmlCell(ord.orderNumber)}</div>
+              <div style="font-size:10px;color:#F5DF98;">${escapeHtmlCell(ordDateStr)}</div>
+            </div>
+          </div>
+
+          <div class="label-grid">
+            <div class="from-box">
+              <div class="box-tag">📤 ຜູ້ສົ່ງ (FROM / SENDER)</div>
+              <div style="font-size:13px;font-weight:800;color:#2E1A0F;">${escapeHtmlCell(companyProfile.legalNameLo)}</div>
+              <div style="font-size:11px;font-weight:700;color:#8B6528;">${escapeHtmlCell(companyProfile.legalNameEn)}</div>
+              <div style="font-size:11px;color:#3f3f46;margin-top:3px;">📍 ${escapeHtmlCell(companyProfile.addressLo)}</div>
+              <div style="font-size:12px;font-weight:800;color:#2E1A0F;font-family:monospace;margin-top:3px;">📞 ${escapeHtmlCell(companyProfile.phone)}</div>
+            </div>
+
+            <div class="to-box">
+              <div class="box-tag-to">📥 ຜູ້ຮັບ / ທີ່ຢູ່ຈັດສົ່ງສະມາຊິກ (TO USER MEMBER / BILLING ADDRESS)</div>
+              <div style="font-size:16px;font-weight:900;color:#18181b;margin-top:2px;">
+                ${escapeHtmlCell(recipientName)}${escapeHtmlCell(memberCodeBadge)}
+              </div>
+              <div style="font-size:14px;font-weight:800;color:#991B1B;font-family:monospace;margin-top:3px;">
+                📞 ໂທຜູ້ຮັບ (Tel): ${escapeHtmlCell(ship.phone)}
+              </div>
+              <div class="addr-highlight">
+                <div style="font-size:10px;font-weight:800;color:#8B6528;text-transform:uppercase;">📍 ທີ່ຢູ່ຈັດສົ່ງ & ຮັບໃບບິນ (Billing & Delivery Address):</div>
+                <div style="font-size:13px;font-weight:800;color:#2E1A0F;margin-top:2px;line-height:1.45;">
+                  ${escapeHtmlCell(ship.billingAddress)}
+                </div>
+              </div>
+              <div style="font-size:11px;color:#3f3f46;margin-top:4px;">
+                🏢 ສາຂາປາຍທາງ (Branch): <strong>${escapeHtmlCell(ship.branch)}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="label-footer">
+            <div>
+              <div style="font-size:10px;color:#71717a;font-weight:700;">🚚 ບໍລິສັດຂົນສົ່ງ (CARRIER) & ລາຍການສິນຄ້າ (PRODUCT):</div>
+              <div style="font-size:12px;font-weight:800;color:#2E1A0F;">
+                ${escapeHtmlCell(ship.provider)} · Waybill: <span style="font-family:monospace;color:#1D4ED8;">${escapeHtmlCell(ship.trackingNo)}</span>
+              </div>
+              <div style="font-size:11px;color:#27272a;margin-top:2px;">
+                📦 <strong>${ord.quantity}x</strong> ${escapeHtmlCell(productTitle)}
+              </div>
+            </div>
+            <div style="text-align:right;shrink:0;">
+              <div style="font-size:10px;color:#71717a;">ຍອດໃບບິນ (BILL TOTAL)</div>
+              <div style="font-size:16px;font-weight:900;font-family:monospace;color:#2E1A0F;">${money(ord.totalAmount)}</div>
+              <div style="display:inline-block;margin-top:2px;padding:1px 8px;border-radius:4px;font-size:10px;font-weight:800;background:#DCFCE7;color:#166534;border:1px solid #86EFAC;">
+                ${escapeHtmlCell(localizeStatus(ord.status, lang, t))} · ${ord.orderType === 'member' ? 'USER MEMBER' : 'RETAIL'}
+              </div>
+            </div>
+          </div>
+        </div>`;
+      })
+      .join('\n');
+
+    return `<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="utf-8" />
+  <title>PL Skincare — ພິມທີ່ຢູ່ຈັດສົ່ງສະມາຊິກ (${targetOrders.length} Labels)</title>
+  <style>
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
+    body { font-family: 'Noto Sans Lao', 'Phetsarath OT', -apple-system, BlinkMacSystemFont, sans-serif; background: #faf6f0; color: #18181b; margin: 0; padding: 16px; }
+    .toolbar { max-width: ${maxWidthCss}; margin: 0 auto 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #2E1A0F; color: #F5DF98; padding: 12px 18px; border-radius: 12px; }
+    .btn { background: #E5C158; color: #2E1A0F; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 13px; }
+    .wrap { max-width: ${maxWidthCss}; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+    .parcel-label { background: #ffffff; border: 2px dashed #2E1A0F; border-radius: 12px; overflow: hidden; page-break-inside: avoid; break-inside: avoid; }
+    .label-top { background: #2E1A0F; color: #F5DF98; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 2.5px solid #C89D54; }
+    .label-grid { display: grid; grid-template-columns: ${isThermal ? '1fr' : '0.82fr 1.18fr'}; gap: 12px; padding: 12px 16px; }
+    .from-box { background: #FAF6F0; border: 1px solid #E4D5B7; border-radius: 8px; padding: 10px 12px; }
+    .to-box { background: #FFFDF7; border: 2px solid #C89D54; border-radius: 8px; padding: 10px 12px; }
+    .box-tag { font-size: 10px; font-weight: 800; color: #8B6528; letter-spacing: 0.5px; margin-bottom: 3px; }
+    .box-tag-to { font-size: 10px; font-weight: 800; color: #FFFFFF; background: #2E1A0F; display: inline-block; padding: 2px 7px; border-radius: 4px; margin-bottom: 4px; }
+    .addr-highlight { margin-top: 6px; background: #FEF3C7; border: 1.5px solid #D97706; border-radius: 6px; padding: 6px 8px; }
+    .label-footer { background: #F7F1E5; border-top: 1px solid #E4D5B7; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    @media print {
+      .toolbar { display: none !important; }
+      body { background: #fff; padding: 0; }
+      .wrap { max-width: 100%; gap: 12px; }
+      .parcel-label { border: 1.5px dashed #18181b; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <div><strong>${escapeHtmlCell(settings.brandName)}</strong> · ໃບປະໜ້າທີ່ຢູ່ຈັດສົ່ງສະມາຊິກ (${targetOrders.length} ໃບ)</div>
+    <button class="btn" onclick="window.print()">🖨️ ພິມທີ່ຢູ່ຈັດສົ່ງ / Print Labels</button>
+  </div>
+  <div class="wrap">
+    ${labelsHtml}
+  </div>
+</body>
+</html>`;
+  };
+
+  const handlePrintSingleBillingAddress = async (
+    ord: Order,
+    labelSize: 'a4' | '80mm' = 'a4'
+  ) => {
+    const htmlDoc = await buildBillingAddressPrintHtmlDocument([ord], labelSize);
+    triggerDirectPrintHtmlDocument(
+      htmlDoc,
+      `ກຳລັງເປີດໜ້າຕ່າງພິມທີ່ຢູ່ຈັດສົ່ງໃຫ້ສະມາຊິກ ${localizePersonName(ord.customerName, lang)} (${ord.orderNumber})...`,
+      `Opening billing address label print for ${localizePersonName(ord.customerName, lang)} (${ord.orderNumber})...`,
+      true
+    );
+  };
+
+  const handlePrintBatchDailyBillingAddresses = async (
+    targetOrders: Order[],
+    labelSize: 'a4' | '80mm' = 'a4'
+  ) => {
+    if (targetOrders.length === 0) {
+      showNotice(
+        'ບໍ່ພົບລາຍການໃບບິນປະຈຳວັນສຳລັບພິມທີ່ຢູ່ຈັດສົ່ງ.',
+        'No daily order bills found to print billing addresses.'
+      );
+      return;
+    }
+    const htmlDoc = await buildBillingAddressPrintHtmlDocument(
+      targetOrders,
+      labelSize
+    );
+    triggerDirectPrintHtmlDocument(
+      htmlDoc,
+      `ກຳລັງເປີດໜ້າຕ່າງພິມທີ່ຢູ່ຈັດສົ່ງປະຈຳວັນທັງໝົດ ${targetOrders.length} ໃບບິນ...`,
+      `Opening batch billing address print (${targetOrders.length} labels)...`,
+      true
     );
   };
 
@@ -10604,11 +10892,9 @@ export default function App() {
       const sponsorText = referrer
         ? `${referrer.code} — ${localizePersonName(referrer.fullName, lang)}`
         : localizePersonName(ord.referringDistributorName, lang);
-      const unitLak = Math.round(
-        ((ord.quantity > 0 ? ord.totalAmount / ord.quantity : ord.totalAmount) ||
-          0) * LAK_PER_THB
-      );
-      const totalLak = Math.round((ord.totalAmount || 0) * LAK_PER_THB);
+      const totalLak = toKipInt(ord.totalAmount || 0);
+      const unitLak =
+        ord.quantity > 0 ? Math.round(totalLak / ord.quantity) : totalLak;
       const getTierLak = (tierNum: 1 | 2 | 3 | 4) => {
         const found = ordComms.find((c) => c.unilevelTier === tierNum);
         return found ? Math.round(found.commissionAmount * LAK_PER_THB) : 0;
@@ -11290,6 +11576,7 @@ export default function App() {
       | 'shippingTrackingNo'
       | 'shippingBranch'
       | 'shippingPhone'
+      | 'billingAddress'
       | 'status',
     rawVal: string
   ) => {
@@ -11298,12 +11585,18 @@ export default function App() {
       prev.map((ord) => {
         if (ord.id !== orderId) return ord;
         const updated = { ...ord };
-        const totalRateRatio =
-          (settings.level1Rate +
-            settings.level2Rate +
-            settings.level3Rate +
-            settings.level4Rate) /
-          100;
+        const calcTierCommLak = (totalLakVal: number, isZeroComm: boolean) => {
+          if (isZeroComm) return 0;
+          return (
+            Math.round((totalLakVal * settings.level1Rate) / 100) +
+            Math.round((totalLakVal * settings.level2Rate) / 100) +
+            Math.round((totalLakVal * settings.level3Rate) / 100) +
+            Math.round((totalLakVal * settings.level4Rate) / 100)
+          );
+        };
+        const wasZeroComm =
+          updated.orderType === 'retail' &&
+          toKipInt(updated.totalCommissionGenerated || 0) === 0;
         if (field === 'orderNumber') {
           updated.orderNumber = rawVal;
         } else if (field === 'orderDate') {
@@ -11321,30 +11614,41 @@ export default function App() {
         } else if (field === 'productName') {
           updated.productName = rawVal;
         } else if (field === 'quantity') {
-          const qty = Math.max(1, Number(rawVal) || 1);
+          const qty = Math.min(10000, Math.max(1, Math.round(Number(rawVal) || 1)));
+          const unitLak = toKipInt(updated.unitPrice);
+          const totalLak = unitLak * qty;
           updated.quantity = qty;
-          updated.totalAmount = updated.unitPrice * qty;
-          updated.totalPv = updated.totalAmount;
-          updated.totalCommissionGenerated = Math.round(
-            updated.totalAmount * totalRateRatio
+          updated.unitPrice = kipToBase(unitLak);
+          updated.totalAmount = kipToBase(totalLak);
+          updated.totalPv = wasZeroComm ? 0 : updated.totalAmount;
+          updated.totalCommissionGenerated = kipToBase(
+            calcTierCommLak(totalLak, wasZeroComm)
           );
         } else if (field === 'unitPriceLak') {
-          const lak = Math.max(0, Number(rawVal.replace(/[^0-9.]/g, '')) || 0);
-          const baseUnit = lak / LAK_PER_THB;
-          updated.unitPrice = baseUnit;
-          updated.totalAmount = baseUnit * Math.max(1, updated.quantity);
-          updated.totalPv = updated.totalAmount;
-          updated.totalCommissionGenerated = updated.totalAmount * totalRateRatio;
+          const unitLak = Math.max(
+            0,
+            Math.round(Number(rawVal.replace(/[^0-9.]/g, '')) || 0)
+          );
+          const qty = Math.max(1, Math.round(updated.quantity || 1));
+          const totalLak = unitLak * qty;
+          updated.unitPrice = kipToBase(unitLak);
+          updated.totalAmount = kipToBase(totalLak);
+          updated.totalPv = wasZeroComm ? 0 : updated.totalAmount;
+          updated.totalCommissionGenerated = kipToBase(
+            calcTierCommLak(totalLak, wasZeroComm)
+          );
         } else if (field === 'totalAmountLak') {
-          const lak = Math.max(0, Number(rawVal.replace(/[^0-9.]/g, '')) || 0);
-          const baseTotal = lak / LAK_PER_THB;
-          updated.totalAmount = baseTotal;
-          updated.unitPrice =
-            updated.quantity > 0
-              ? baseTotal / updated.quantity
-              : baseTotal;
-          updated.totalPv = baseTotal;
-          updated.totalCommissionGenerated = baseTotal * totalRateRatio;
+          const totalLak = Math.max(
+            0,
+            Math.round(Number(rawVal.replace(/[^0-9.]/g, '')) || 0)
+          );
+          const qty = Math.max(1, Math.round(updated.quantity || 1));
+          updated.totalAmount = kipToBase(totalLak);
+          updated.unitPrice = kipToBase(Math.round(totalLak / qty));
+          updated.totalPv = wasZeroComm ? 0 : updated.totalAmount;
+          updated.totalCommissionGenerated = kipToBase(
+            calcTierCommLak(totalLak, wasZeroComm)
+          );
         } else if (field === 'paymentMethod') {
           updated.paymentMethod = rawVal;
         } else if (field === 'paymentRef') {
@@ -11357,6 +11661,8 @@ export default function App() {
           updated.shippingBranch = rawVal;
         } else if (field === 'shippingPhone') {
           updated.shippingPhone = rawVal;
+        } else if (field === 'billingAddress') {
+          updated.billingAddress = rawVal;
         } else if (field === 'status') {
           updated.status =
             rawVal === 'cancelled'
@@ -11364,6 +11670,70 @@ export default function App() {
               : rawVal === 'processing'
               ? 'processing'
               : 'fulfilled';
+        }
+        if (user) {
+          const firestorePayload: Record<string, unknown> = {
+            updatedAt: serverTimestamp(),
+          };
+          if (field === 'orderDate') {
+            firestorePayload.orderDate = sanitizeString(
+              rawVal,
+              VALIDATION_CONSTRAINTS.ORDER.ORDER_DATE_MAX
+            );
+          } else if (field === 'paymentMethod') {
+            firestorePayload.paymentMethod = sanitizeString(
+              rawVal,
+              VALIDATION_CONSTRAINTS.ORDER.PAYMENT_METHOD_MAX
+            );
+          } else if (field === 'paymentRef') {
+            firestorePayload.paymentRef = sanitizeString(
+              rawVal,
+              VALIDATION_CONSTRAINTS.ORDER.PAYMENT_REF_MAX
+            );
+          } else if (field === 'shippingProvider') {
+            firestorePayload.shippingProvider = sanitizeString(
+              rawVal,
+              VALIDATION_CONSTRAINTS.ORDER.SHIPPING_PROVIDER_MAX
+            );
+          } else if (field === 'shippingBranch') {
+            firestorePayload.shippingBranch = sanitizeString(
+              rawVal,
+              VALIDATION_CONSTRAINTS.ORDER.SHIPPING_BRANCH_MAX
+            );
+          } else if (field === 'shippingPhone') {
+            firestorePayload.shippingPhone = sanitizeString(
+              rawVal,
+              VALIDATION_CONSTRAINTS.ORDER.SHIPPING_PHONE_MAX
+            );
+          } else if (field === 'shippingTrackingNo') {
+            firestorePayload.shippingTrackingNo = sanitizeString(
+              rawVal,
+              VALIDATION_CONSTRAINTS.ORDER.SHIPPING_TRACKING_MAX
+            );
+          } else if (field === 'billingAddress') {
+            firestorePayload.billingAddress = sanitizeString(
+              rawVal,
+              VALIDATION_CONSTRAINTS.ORDER.BILLING_ADDRESS_MAX
+            );
+          } else if (field === 'status') {
+            firestorePayload.status = updated.status;
+          } else if (
+            field === 'quantity' ||
+            field === 'unitPriceLak' ||
+            field === 'totalAmountLak'
+          ) {
+            firestorePayload.quantity = updated.quantity;
+            firestorePayload.unitPrice = updated.unitPrice;
+            firestorePayload.totalAmount = updated.totalAmount;
+            firestorePayload.totalPv = updated.totalPv;
+            firestorePayload.totalCommissionGenerated =
+              updated.totalCommissionGenerated;
+          }
+          if (Object.keys(firestorePayload).length > 1) {
+            updateDoc(doc(db, 'orders', orderId), firestorePayload).catch(
+              () => {}
+            );
+          }
         }
         return updated;
       })
@@ -11403,13 +11773,11 @@ export default function App() {
       unitPrice: unitBase,
       totalAmount: unitBase,
       totalPv: unitBase,
-      totalCommissionGenerated: Math.round(
-        (unitBase *
-          (settings.level1Rate +
-            settings.level2Rate +
-            settings.level3Rate +
-            settings.level4Rate)) /
-          100
+      totalCommissionGenerated: kipToBase(
+        Math.round((toKipInt(unitBase) * settings.level1Rate) / 100) +
+          Math.round((toKipInt(unitBase) * settings.level2Rate) / 100) +
+          Math.round((toKipInt(unitBase) * settings.level3Rate) / 100) +
+          Math.round((toKipInt(unitBase) * settings.level4Rate) / 100)
       ),
       status: 'fulfilled',
       paymentMethod: 'bank_qr',
@@ -11418,6 +11786,8 @@ export default function App() {
       shippingBranch: 'ສາຂາ ນະຄອນຫຼວງວຽງຈັນ (Vientiane Capital Main Hub)',
       shippingPhone: '020 5588 9911',
       shippingTrackingNo: `ANS-${nextNum}88`,
+      billingAddress:
+        'ບ້ານຮ່ອງໄກ່ແກ້ວ, ເມືອງຈັນທະບູລີ, ນະຄອນຫຼວງວຽງຈັນ',
     };
     setOrders((prev) => [newOrd, ...prev]);
     showNotice(
@@ -11440,10 +11810,33 @@ export default function App() {
   // ============================================================================
   const dailyFilteredOrders = useMemo(() => {
     const todayIso = new Date().toISOString().slice(0, 10);
+    const q = dailyMemberBillSearch.trim().toLowerCase();
     return orders.filter((ord) => {
       const ordDate = getOrderDateString(ord);
       if (dailyReportStatusFilter !== 'all' && ord.status !== dailyReportStatusFilter) {
         return false;
+      }
+      if (
+        dailyMemberBillTypeFilter !== 'all' &&
+        ord.orderType !== dailyMemberBillTypeFilter
+      ) {
+        return false;
+      }
+      if (q) {
+        const ship = extractOrderShippingInfo(ord);
+        const hay = [
+          ord.orderNumber,
+          ord.customerName,
+          ord.referringDistributorName,
+          ord.productName,
+          ship.phone,
+          ship.billingAddress,
+          ship.branch,
+          ship.trackingNo,
+        ]
+          .join(' ')
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
       }
       if (dailyReportDateMode === 'today') {
         return ordDate === todayIso;
@@ -11465,6 +11858,8 @@ export default function App() {
     dailyReportStartDate,
     dailyReportEndDate,
     dailyReportStatusFilter,
+    dailyMemberBillTypeFilter,
+    dailyMemberBillSearch,
   ]);
 
   const dailySummaryByDate = useMemo(() => {
@@ -11486,11 +11881,14 @@ export default function App() {
 
     dailyFilteredOrders.forEach((ord) => {
       const dStr = getOrderDateString(ord);
-      const totalLak = Math.round((ord.totalAmount || 0) * LAK_PER_THB);
-      const l1Lak = Math.round((totalLak * settings.level1Rate) / 100);
-      const l2Lak = Math.round((totalLak * settings.level2Rate) / 100);
-      const l3Lak = Math.round((totalLak * settings.level3Rate) / 100);
-      const l4Lak = Math.round((totalLak * settings.level4Rate) / 100);
+      const totalLak = toKipInt(ord.totalAmount || 0);
+      const isZeroComm =
+        ord.orderType === 'retail' &&
+        toKipInt(ord.totalCommissionGenerated || 0) === 0;
+      const l1Lak = isZeroComm ? 0 : Math.round((totalLak * settings.level1Rate) / 100);
+      const l2Lak = isZeroComm ? 0 : Math.round((totalLak * settings.level2Rate) / 100);
+      const l3Lak = isZeroComm ? 0 : Math.round((totalLak * settings.level3Rate) / 100);
+      const l4Lak = isZeroComm ? 0 : Math.round((totalLak * settings.level4Rate) / 100);
       const commLak = l1Lak + l2Lak + l3Lak + l4Lak;
       const netLak = totalLak - commLak;
 
@@ -11589,6 +11987,7 @@ export default function App() {
       'ຊ່ອງທາງຊຳລະເງິນ (Payment Method)',
       'ບໍລິສັດຂົນສົ່ງ (Official Logistics)',
       'ເລກພັດສະດຸ (Waybill No.)',
+      'ທີ່ຢູ່ຈັດສົ່ງສະມາຊິກ (Billing / Delivery Address)',
       'ສາຂາປາຍທາງ (Branch)',
       'ເບີໂທຜູ້ຮັບ (Receiver Phone)',
       'ສະຖານະໃບບິນ (Bill Status)',
@@ -11639,6 +12038,7 @@ export default function App() {
             : `Direct Bill (${ship.cleanPaymentRef})`,
         carrier: ship.provider,
         trackingNo: ship.trackingNo,
+        billingAddress: ship.billingAddress,
         branch: ship.branch,
         phone: ship.phone,
         status: localizeStatus(ord.status, lang, t),
@@ -11669,6 +12069,7 @@ export default function App() {
             r.paymentMethod,
             r.carrier,
             r.trackingNo,
+            r.billingAddress,
             r.branch,
             r.phone,
             r.status,
@@ -11788,6 +12189,7 @@ export default function App() {
           <td>${escapeHtmlCell(r.paymentMethod)}</td>
           <td>${escapeHtmlCell(r.carrier)}</td>
           <td style="font-family:monospace;">${escapeHtmlCell(r.trackingNo)}</td>
+          <td>${escapeHtmlCell(r.billingAddress)}</td>
           <td>${escapeHtmlCell(r.branch)}</td>
           <td>${escapeHtmlCell(r.phone)}</td>
           <td>${escapeHtmlCell(r.status)}</td>
@@ -11805,7 +12207,7 @@ export default function App() {
       <td class="num">${dailyReportTotals.l4Lak.toLocaleString('en-US')} ₭</td>
       <td class="num">${dailyReportTotals.totalCommLak.toLocaleString('en-US')} ₭</td>
       <td class="num">${dailyReportTotals.netCompanyLak.toLocaleString('en-US')} ₭</td>
-      <td colspan="6">-</td>
+      <td colspan="7">-</td>
     </tr>
   </table>
 </body>
@@ -11919,15 +12321,15 @@ export default function App() {
         ${dailyFilteredOrders
           .map((ord, idx) => {
             const ship = extractOrderShippingInfo(ord);
-            const totalLak = Math.round((ord.totalAmount || 0) * LAK_PER_THB);
-            const commLak = Math.round(
-              (totalLak *
-                (settings.level1Rate +
-                  settings.level2Rate +
-                  settings.level3Rate +
-                  settings.level4Rate)) /
-                100
-            );
+            const totalLak = toKipInt(ord.totalAmount || 0);
+            const isZeroComm =
+              ord.orderType === 'retail' &&
+              toKipInt(ord.totalCommissionGenerated || 0) === 0;
+            const l1Lak = isZeroComm ? 0 : Math.round((totalLak * settings.level1Rate) / 100);
+            const l2Lak = isZeroComm ? 0 : Math.round((totalLak * settings.level2Rate) / 100);
+            const l3Lak = isZeroComm ? 0 : Math.round((totalLak * settings.level3Rate) / 100);
+            const l4Lak = isZeroComm ? 0 : Math.round((totalLak * settings.level4Rate) / 100);
+            const commLak = l1Lak + l2Lak + l3Lak + l4Lak;
             return `<tr>
               <td>${idx + 1}</td>
               <td style="font-family:monospace;font-weight:700;">${escapeHtmlCell(getOrderDateString(ord))}</td>
@@ -13667,20 +14069,32 @@ export default function App() {
                         products[0];
                       const isCurrentPkg =
                         activeMember.activePackage === pkg.tier;
+                      const pkgBoxes = Math.max(1, Math.round(pkg.quantity || 1));
+                      const unitBoxLak =
+                        pkg.priceLak && pkg.priceLak > 0
+                          ? Math.round(pkg.priceLak)
+                          : toKipInt(pkg.price);
+                      const unitBoxBase = kipToBase(unitBoxLak);
+                      const pkgTotalLak = unitBoxLak * pkgBoxes;
+                      const pkgTotalBase = kipToBase(pkgTotalLak);
                       const l1Comm = isL5Zero
                         ? 0
-                        : Math.round((pkg.price * settings.level1Rate) / 100);
+                        : kipToBase(Math.round((pkgTotalLak * settings.level1Rate) / 100));
                       const l2Comm = isL5Zero
                         ? 0
-                        : Math.round((pkg.price * settings.level2Rate) / 100);
+                        : kipToBase(Math.round((pkgTotalLak * settings.level2Rate) / 100));
                       const l3Comm = isL5Zero
                         ? 0
-                        : Math.round((pkg.price * settings.level3Rate) / 100);
+                        : kipToBase(Math.round((pkgTotalLak * settings.level3Rate) / 100));
                       const l4Comm = isL5Zero
                         ? 0
-                        : Math.round((pkg.price * settings.level4Rate) / 100);
-                      const total4LevelComm =
-                        l1Comm + l2Comm + l3Comm + l4Comm;
+                        : kipToBase(Math.round((pkgTotalLak * settings.level4Rate) / 100));
+                      const total4LevelComm = kipToBase(
+                        toKipInt(l1Comm) +
+                          toKipInt(l2Comm) +
+                          toKipInt(l3Comm) +
+                          toKipInt(l4Comm)
+                      );
 
                       return (
                         <div
@@ -13743,9 +14157,16 @@ export default function App() {
                                   {t.pkgActivatedBadge}
                                 </span>
                               )}
-                              <div className="mt-2 p-2.5 bg-stone-50 border border-zinc-200 rounded-lg font-mono tabular-nums">
-                                <p className="text-lg font-bold text-zinc-900">
-                                  {money(pkg.price)}
+                              <div className="mt-2 p-2.5 bg-stone-50 border border-zinc-200 rounded-lg font-mono tabular-nums space-y-0.5">
+                                <p className="text-[11px] text-zinc-600">
+                                  {lang === 'lo' ? 'ລາຄາ/ກ່ອງ:' : 'Per Box:'}{' '}
+                                  <strong className="text-zinc-900">
+                                    {money(unitBoxBase)}
+                                  </strong>{' '}
+                                  × {pkgBoxes}
+                                </p>
+                                <p className="text-base font-bold text-zinc-900">
+                                  {money(pkgTotalBase)}
                                 </p>
                               </div>
                             </div>
@@ -13927,72 +14348,94 @@ export default function App() {
                       </div>
                     ) : (
                       <div className="space-y-2.5">
-                        {memberCart.map((item) => (
-                          <div
-                            key={item.id}
-                            className="p-3.5 bg-stone-50 border border-zinc-200 rounded-xl flex flex-wrap items-center justify-between gap-3"
-                          >
-                            <div className="space-y-0.5">
-                              <div className="flex items-center gap-2">
-                                <span className="px-2 py-0.5 text-[10px] font-mono uppercase font-bold bg-zinc-900 text-white rounded">
-                                  {item.kind === 'package'
-                                    ? lang === 'lo'
-                                      ? 'ແພັກເກັດ'
-                                      : 'PACKAGE'
-                                    : lang === 'lo'
-                                    ? 'ສິນຄ້າ'
-                                    : 'PRODUCT'}
-                                </span>
-                                <p className="text-xs font-bold text-zinc-900">
-                                  {lang === 'lo' ? item.titleLo : item.titleEn}
+                        {memberCart.map((item) => {
+                          const itemUnitLak = toKipInt(item.unitPrice);
+                          const itemLineBase = kipToBase(
+                            itemUnitLak * Math.max(1, Math.round(item.quantity))
+                          );
+                          return (
+                            <div
+                              key={item.id}
+                              className="p-3.5 bg-stone-50 border border-zinc-200 rounded-xl flex flex-wrap items-center justify-between gap-3"
+                            >
+                              <div className="space-y-0.5 min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2 py-0.5 text-[10px] font-mono uppercase font-bold bg-zinc-900 text-white rounded shrink-0">
+                                    {item.kind === 'package'
+                                      ? lang === 'lo'
+                                        ? 'ແພັກເກັດ'
+                                        : 'PACKAGE'
+                                      : lang === 'lo'
+                                      ? 'ສິນຄ້າ'
+                                      : 'PRODUCT'}
+                                  </span>
+                                  <p className="text-xs font-bold text-zinc-900 break-words">
+                                    {lang === 'lo' ? item.titleLo : item.titleEn}
+                                  </p>
+                                </div>
+                                <p className="text-xs font-mono text-zinc-600">
+                                  {money(kipToBase(itemUnitLak))} × {item.quantity}{' '}
+                                  {lang === 'lo' ? 'ກ່ອງ' : 'boxes'} ={' '}
+                                  <strong className="text-zinc-900">
+                                    {money(itemLineBase)}
+                                  </strong>
                                 </p>
                               </div>
-                              <p className="text-xs font-mono text-zinc-600">
-                                {money(item.unitPrice)} × {item.quantity} ={' '}
-                                <strong className="text-zinc-900">
-                                  {money(item.unitPrice * item.quantity)}
-                                </strong>
-                              </p>
-                            </div>
 
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateCartQty(item.id, -1)}
-                                className="w-7 h-7 flex items-center justify-center text-xs font-bold bg-white border border-zinc-300 rounded-md hover:border-zinc-900"
-                              >
-                                -
-                              </button>
-                              <span className="w-7 text-center text-xs font-mono font-bold">
-                                {item.quantity}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateCartQty(item.id, 1)}
-                                className="w-7 h-7 flex items-center justify-center text-xs font-bold bg-white border border-zinc-300 rounded-md hover:border-zinc-900"
-                              >
-                                +
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveCartItem(item.id)}
-                                className="p-1.5 text-zinc-500 hover:text-red-700"
-                                title="Remove"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateCartQty(item.id, -1)}
+                                  className="w-7 h-7 flex items-center justify-center text-xs font-bold bg-white border border-zinc-300 rounded-md hover:border-zinc-900"
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={10000}
+                                  value={item.quantity}
+                                  onChange={(e) =>
+                                    handleSetCartQty(
+                                      item.id,
+                                      parseInt(e.target.value, 10) || 1
+                                    )
+                                  }
+                                  aria-label="Cart box quantity"
+                                  className="w-16 px-1.5 py-1 text-center text-xs font-mono font-bold bg-white border border-zinc-300 rounded-md"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateCartQty(item.id, 1)}
+                                  className="w-7 h-7 flex items-center justify-center text-xs font-bold bg-white border border-zinc-300 rounded-md hover:border-zinc-900"
+                                >
+                                  +
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveCartItem(item.id)}
+                                  className="p-1.5 text-zinc-500 hover:text-red-700"
+                                  title="Remove"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
 
                     {/* Cart Subtotal & 4-Level Commission Distribution Summary (L5 = General Buy, No Commission) */}
                     {(() => {
-                      const cartTotalThb = memberCart.reduce(
-                        (sum, i) => sum + i.unitPrice * i.quantity,
+                      const cartTotalLak = memberCart.reduce(
+                        (sum, i) =>
+                          sum +
+                          toKipInt(i.unitPrice) *
+                            Math.max(1, Math.round(i.quantity)),
                         0
                       );
+                      const cartTotalThb = kipToBase(cartTotalLak);
                       const isL5General = isGeneralBuyerL5(activeMember);
                       const cartSplits = calculateUnilevelSplit(
                         activeMember.id,
@@ -14000,9 +14443,11 @@ export default function App() {
                         distributors,
                         settings
                       );
-                      const cartTotalComm = cartSplits.reduce(
-                        (s, c) => s + c.commissionAmount,
-                        0
+                      const cartTotalComm = kipToBase(
+                        cartSplits.reduce(
+                          (s, c) => s + toKipInt(c.commissionAmount),
+                          0
+                        )
                       );
 
                       return (
@@ -14044,8 +14489,11 @@ export default function App() {
                                 <strong className="text-emerald-800">
                                   +
                                   {money(
-                                    Math.round(
-                                      (cartTotalThb * settings.level1Rate) / 100
+                                    kipToBase(
+                                      Math.round(
+                                        (cartTotalLak * settings.level1Rate) /
+                                          100
+                                      )
                                     )
                                   )}
                                 </strong>
@@ -14165,10 +14613,14 @@ export default function App() {
 
                     {/* Visual Bank QR Code Card */}
                     {(() => {
-                      const cartTotalThb = memberCart.reduce(
-                        (sum, i) => sum + i.unitPrice * i.quantity,
+                      const cartTotalLak = memberCart.reduce(
+                        (sum, i) =>
+                          sum +
+                          toKipInt(i.unitPrice) *
+                            Math.max(1, Math.round(i.quantity)),
                         0
                       );
+                      const cartTotalThb = kipToBase(cartTotalLak);
                       const activeBankObj =
                         bankQrMethods.find(
                           (b) => b.bankName === selectedBankForQrPayment
@@ -14178,8 +14630,8 @@ export default function App() {
                           (activeBankObj.qrImageUrl || activeBankObj.qrPayload)
                       );
                       const qrPayload = activeBankObj?.qrPayload
-                        ? `${activeBankObj.qrPayload}|MEMBER:${activeMember.code}|AMOUNT_LAK:${Math.round(cartTotalThb * LAK_PER_THB)}`
-                        : `PL_SKINCARE|BANK:${selectedBankForQrPayment}|MEMBER:${activeMember.code}|AMOUNT_LAK:${Math.round(cartTotalThb * LAK_PER_THB)}|CURRENCY:LAK`;
+                        ? `${activeBankObj.qrPayload}|MEMBER:${activeMember.code}|AMOUNT_LAK:${cartTotalLak}`
+                        : `PL_SKINCARE|BANK:${selectedBankForQrPayment}|MEMBER:${activeMember.code}|AMOUNT_LAK:${cartTotalLak}|CURRENCY:LAK`;
                       return (
                         <div className="p-4 bg-white border border-zinc-200 rounded-xl flex flex-col items-center text-center space-y-2.5">
                           <div className="w-full flex flex-wrap items-center justify-between gap-1.5 border-b border-zinc-100 pb-2">
@@ -14424,6 +14876,31 @@ export default function App() {
                                 className="w-full px-2.5 py-1.5 text-xs font-mono bg-stone-50 border border-zinc-300 rounded-lg"
                               />
                             </div>
+                          </div>
+
+                          {/* Full Billing / Delivery Address */}
+                          <div className="pt-1">
+                            <label className="block text-[11px] font-medium text-zinc-700 mb-1">
+                              {lang === 'lo'
+                                ? 'ທີ່ຢູ່ຈັດສົ່ງ & ຮັບໃບບິນສະມາຊິກ (Billing / Delivery Address)'
+                                : 'Member Billing & Parcel Delivery Address'}
+                            </label>
+                            <input
+                              type="text"
+                              maxLength={
+                                VALIDATION_CONSTRAINTS.ORDER.BILLING_ADDRESS_MAX
+                              }
+                              value={shippingBillingAddress}
+                              onChange={(e) =>
+                                setShippingBillingAddress(e.target.value)
+                              }
+                              placeholder={
+                                lang === 'lo'
+                                  ? 'ບ້ານ, ເມືອງ, ແຂວງ / ສາຂາຂົນສົ່ງປາຍທາງ'
+                                  : 'Village, District, Province / Delivery Address'
+                              }
+                              className="w-full px-2.5 py-1.5 text-xs bg-stone-50 border border-zinc-300 rounded-lg"
+                            />
                           </div>
                         </div>
                       );
@@ -16638,6 +17115,12 @@ export default function App() {
                       [
                         ['overview', t.subTabOverview],
                         [
+                          'daily_member_bills',
+                          lang === 'lo'
+                            ? `📦 ບິນສັ່ງຊື້ປະຈຳວັນ & ພິມທີ່ຢູ່ສົ່ງສະມາຊິກ (${dailyFilteredOrders.length})`
+                            : `📦 Daily Member Bills & Print Address (${dailyFilteredOrders.length})`,
+                        ],
+                        [
                           'excel_reports',
                           lang === 'lo'
                             ? `📊 ລາຍງານໄຟລ໌ Excel ສະມາຊິກ & ໃບບິນ (${distributors.length} / ${orders.length})`
@@ -16711,6 +17194,16 @@ export default function App() {
 
                   {/* Global One-Click Executive Actions */}
                   <div className="flex flex-wrap items-center gap-2 max-w-full">
+                    <button
+                      type="button"
+                      onClick={() => setAdminSubPanel('daily_member_bills')}
+                      className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 text-xs font-bold text-[#2E1A0F] bg-[#E5C158] border border-[#8B6528] hover:bg-[#F5DF98] rounded-lg transition-colors text-left leading-snug max-w-full sm:whitespace-nowrap shadow-xs cursor-pointer"
+                    >
+                      <Printer className="w-3.5 h-3.5 text-[#2E1A0F] shrink-0" />
+                      {lang === 'lo'
+                        ? '📦 ບິນສັ່ງຊື້ປະຈຳວັນ & ພິມທີ່ຢູ່ສົ່ງສະມາຊິກ'
+                        : '📦 Daily Bills & Print Member Address'}
+                    </button>
                     <button
                       type="button"
                       onClick={() => setAdminSubPanel('company_profile')}
@@ -18311,6 +18804,17 @@ export default function App() {
                                     </td>
                                     <td className="py-1.5 px-2 text-right whitespace-nowrap">
                                       <div className="inline-flex items-center gap-1">
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handlePrintSingleBillingAddress(ord, 'a4')
+                                          }
+                                          className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold text-[#2E1A0F] bg-[#E5C158] hover:bg-[#F5DF98] rounded cursor-pointer"
+                                          title="Print Billing Address"
+                                        >
+                                          <Truck className="w-3 h-3" />
+                                          {lang === 'lo' ? 'ພິມທີ່ຢູ່' : 'Address'}
+                                        </button>
                                         <button
                                           type="button"
                                           onClick={() =>
@@ -22557,7 +23061,7 @@ export default function App() {
                                       <input
                                         type="number"
                                         min={1}
-                                        max={500}
+                                        max={10000}
                                         value={draftQty}
                                         onChange={(e) =>
                                           setInlinePkgQtyDrafts((prev) => ({
@@ -22601,15 +23105,17 @@ export default function App() {
                                       <button
                                         type="button"
                                         onClick={() => {
-                                          const rawVal =
-                                            parseFloat(draftPrice) || 0;
-                                          const nextThb =
+                                          const rawLak = Math.max(
+                                            0,
                                             Math.round(
-                                              (rawVal / LAK_PER_THB) * 100
-                                            ) / 100;
+                                              parseFloat(draftPrice) || 0
+                                            )
+                                          );
+                                          const nextThb = kipToBase(rawLak);
                                           handleQuickUpdatePackage(pkg, {
                                             price: nextThb,
-                                            pv: nextThb,
+                                            priceLak: rawLak,
+                                            pv: isZeroComm ? 0 : nextThb,
                                           });
                                         }}
                                         className="px-2.5 py-1 text-[11px] font-bold text-[#F5DF98] bg-[#2E1A0F] hover:bg-[#3D2314] rounded-md whitespace-nowrap shrink-0"
@@ -22618,7 +23124,15 @@ export default function App() {
                                       </button>
                                     </div>
                                     <div className="text-[11px] font-mono text-zinc-500 mt-0.5">
-                                      {money(pkg.price)}
+                                      {money(pkg.price)}/1 · {pkg.quantity} ={' '}
+                                      {money(
+                                        kipToBase(
+                                          (pkg.priceLak && pkg.priceLak > 0
+                                            ? Math.round(pkg.priceLak)
+                                            : toKipInt(pkg.price)) *
+                                            Math.max(1, Math.round(pkg.quantity || 1))
+                                        )
+                                      )}
                                     </div>
                                   </td>
                                   <td className="py-3 px-3">
@@ -24176,6 +24690,483 @@ export default function App() {
                   </div>
                 )}
 
+            {/* DEDICATED PANEL: DAILY MEMBER ORDER BILLS & PRINT BILLING ADDRESS */}
+            {(adminSubPanel === 'overview' ||
+              adminSubPanel === 'daily_member_bills' ||
+              adminSubPanel === 'orders') && (
+              <section className="bg-white border-2 border-[#C89D54] rounded-2xl overflow-hidden shadow-md">
+                <div className="bg-gradient-to-r from-[#2E1A0F] via-[#4A2C18] to-[#2E1A0F] px-5 sm:px-6 py-4 border-b border-[#C89D54]/50 flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[#E5C158]/20 text-[#F5DF98] border border-[#E5C158]/40">
+                      {lang === 'lo'
+                        ? '📦 ລາຍການໃບບິນສັ່ງຊື້ສິນຄ້າປະຈຳວັນ & ພິມທີ່ຢູ່ຈັດສົ່ງສະມາຊິກ'
+                        : '📦 DAILY USER MEMBER ORDER BILLS & PRINT BILLING ADDRESS'}
+                    </span>
+                    <h2 className="mt-1 text-lg font-bold text-white font-display">
+                      {lang === 'lo'
+                        ? `ລາຍການບິນສັ່ງຊື້ປະຈຳວັນຈາກສະມາຊິກ & ພິມທີ່ຢູ່ຈັດສົ່ງ (${dailyFilteredOrders.length} ໃບບິນ)`
+                        : `Daily Member Order Bills & Printable Billing Addresses (${dailyFilteredOrders.length} Bills)`}
+                    </h2>
+                    <p className="text-xs text-[#E5C158]/90 mt-0.5">
+                      {lang === 'lo'
+                        ? 'ກວດສອບລາຍການສັ່ງຊື້ປະຈຳວັນ, ແກ້ໄຂທີ່ຢູ່/ເບີໂທຜູ້ຮັບໂດຍກົງ ແລະ ກົດພິມໃບປະໜ້າທີ່ຢູ່ສົ່ງໃຫ້ສະມາຊິກ (A4 / 80mm)'
+                        : 'Filter daily member product orders, edit billing/delivery address & phone inline, and print individual or batch address slips to send to user members.'}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handlePrintBatchDailyBillingAddresses(
+                          dailyFilteredOrders,
+                          'a4'
+                        )
+                      }
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-[#2E1A0F] bg-gradient-to-r from-[#F5DF98] via-[#E5C158] to-[#C89D54] hover:from-[#FFF0B8] hover:to-[#D4AF37] rounded-lg shadow-xs cursor-pointer"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      {lang === 'lo'
+                        ? `🖨️ ພິມທີ່ຢູ່ສົ່ງສະມາຊິກທັງໝົດ (${dailyFilteredOrders.length})`
+                        : `🖨️ Print All Billing Addresses (${dailyFilteredOrders.length})`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handlePrintBatchDailyBillingAddresses(
+                          dailyFilteredOrders,
+                          '80mm'
+                        )
+                      }
+                      className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-[#F5DF98] bg-white/10 hover:bg-white/20 border border-[#C89D54] rounded-lg cursor-pointer"
+                    >
+                      <Tag className="w-3.5 h-3.5 text-[#E5C158]" />
+                      {lang === 'lo'
+                        ? '🏷️ ສະຕິກເກີທີ່ຢູ່ 80mm'
+                        : '🏷️ 80mm Labels'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePrintDailyOrderBillReport}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-600 rounded-lg cursor-pointer"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      {lang === 'lo'
+                        ? 'ພິມໃບລາຍງານປະຈຳວັນ'
+                        : 'Print Daily Report'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleExportDailyOrderBillsExcel('xls')}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-[#2E1A0F] bg-white hover:bg-[#FAF6F0] rounded-lg cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Excel (.xls)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter Controls Bar */}
+                <div className="p-4 bg-[#FAF6F0] border-b border-[#C89D54]/40 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {(
+                        [
+                          ['all', lang === 'lo' ? 'ທຸກວັນທີ' : 'All Dates'],
+                          [
+                            'today',
+                            lang === 'lo'
+                              ? `ມື້ນີ້ (${new Date().toISOString().slice(0, 10)})`
+                              : `Today (${new Date().toISOString().slice(0, 10)})`,
+                          ],
+                          [
+                            'single_date',
+                            lang === 'lo' ? 'ເລືອກວັນທີ' : 'Specific Date',
+                          ],
+                          [
+                            'date_range',
+                            lang === 'lo' ? 'ຊ່ວງວັນທີ' : 'Date Range',
+                          ],
+                        ] as const
+                      ).map(([modeKey, modeLabel]) => (
+                        <button
+                          key={modeKey}
+                          type="button"
+                          onClick={() => setDailyReportDateMode(modeKey)}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                            dailyReportDateMode === modeKey
+                              ? 'bg-[#2E1A0F] text-[#F5DF98] shadow-xs'
+                              : 'bg-white text-[#2E1A0F] border border-[#C89D54]/50 hover:bg-[#E5C158]/30'
+                          }`}
+                        >
+                          {modeLabel}
+                        </button>
+                      ))}
+
+                      {dailyReportDateMode === 'single_date' && (
+                        <input
+                          type="date"
+                          value={dailyReportSelectedDate}
+                          onChange={(e) =>
+                            setDailyReportSelectedDate(e.target.value)
+                          }
+                          className="px-2.5 py-1 text-xs font-mono font-bold bg-white border-2 border-[#2E1A0F] rounded-lg"
+                        />
+                      )}
+
+                      {dailyReportDateMode === 'date_range' && (
+                        <div className="inline-flex items-center gap-1.5">
+                          <input
+                            type="date"
+                            value={dailyReportStartDate}
+                            onChange={(e) =>
+                              setDailyReportStartDate(e.target.value)
+                            }
+                            className="px-2.5 py-1 text-xs font-mono font-bold bg-white border border-[#C89D54] rounded-lg"
+                          />
+                          <span className="text-xs font-bold text-[#2E1A0F]">
+                            →
+                          </span>
+                          <input
+                            type="date"
+                            value={dailyReportEndDate}
+                            onChange={(e) =>
+                              setDailyReportEndDate(e.target.value)
+                            }
+                            className="px-2.5 py-1 text-xs font-mono font-bold bg-white border border-[#C89D54] rounded-lg"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        value={dailyMemberBillTypeFilter}
+                        onChange={(e) =>
+                          setDailyMemberBillTypeFilter(
+                            e.target.value as 'all' | 'member' | 'retail'
+                          )
+                        }
+                        className="px-2.5 py-1.5 text-xs font-bold bg-white border border-[#C89D54] rounded-lg text-[#2E1A0F]"
+                      >
+                        <option value="all">
+                          {lang === 'lo'
+                            ? 'ທຸກປະເພດບິນ (ສະມາຊິກ + ທົ່ວໄປ)'
+                            : 'All Order Types'}
+                        </option>
+                        <option value="member">
+                          {lang === 'lo'
+                            ? 'ສະເພາະບິນສະມາຊິກ (User Member)'
+                            : 'User Member Orders Only'}
+                        </option>
+                        <option value="retail">
+                          {lang === 'lo'
+                            ? 'ຊື້ຍ່ອຍທົ່ວໄປ (Retail)'
+                            : 'Retail Orders Only'}
+                        </option>
+                      </select>
+
+                      <select
+                        value={dailyReportStatusFilter}
+                        onChange={(e) =>
+                          setDailyReportStatusFilter(
+                            e.target.value as
+                              | 'all'
+                              | 'fulfilled'
+                              | 'processing'
+                              | 'cancelled'
+                          )
+                        }
+                        className="px-2.5 py-1.5 text-xs font-bold bg-white border border-[#C89D54] rounded-lg text-[#2E1A0F]"
+                      >
+                        <option value="all">
+                          {lang === 'lo' ? 'ທຸກສະຖານະ' : 'All Statuses'}
+                        </option>
+                        <option value="fulfilled">
+                          {lang === 'lo' ? 'ສຳເລັດແລ້ວ (Fulfilled)' : 'Fulfilled'}
+                        </option>
+                        <option value="processing">
+                          {lang === 'lo' ? 'ກຳລັງດຳເນີນການ (Processing)' : 'Processing'}
+                        </option>
+                        <option value="cancelled">
+                          {lang === 'lo' ? 'ຍົກເລີກ (Cancelled)' : 'Cancelled'}
+                        </option>
+                      </select>
+
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={dailyMemberBillSearch}
+                          onChange={(e) =>
+                            setDailyMemberBillSearch(e.target.value)
+                          }
+                          placeholder={
+                            lang === 'lo'
+                              ? 'ຄົ້ນຫາ ຊື່ສະມາຊິກ / ເບີໂທ / ທີ່ຢູ່ / ເລກບິນ...'
+                              : 'Search member, bill no., phone, address...'
+                          }
+                          className="pl-8 pr-3 py-1.5 text-xs bg-white border border-[#C89D54] rounded-lg w-56 sm:w-64"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Summary KPI Strip */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="p-3 rounded-xl bg-white border border-[#C89D54]/50">
+                      <p className="text-[11px] text-zinc-500 font-medium">
+                        {lang === 'lo'
+                          ? 'ໃບບິນປະຈຳວັນທີ່ກັ່ນຕອງ'
+                          : 'Filtered Daily Bills'}
+                      </p>
+                      <p className="text-base font-extrabold text-[#2E1A0F] font-mono mt-0.5">
+                        {dailyReportTotals.billCount}{' '}
+                        {lang === 'lo' ? 'ໃບບິນ' : 'Bills'} ·{' '}
+                        {dailyReportTotals.totalBoxes}{' '}
+                        {lang === 'lo' ? 'ກ່ອງ' : 'Boxes'}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-white border border-blue-200">
+                      <p className="text-[11px] text-blue-800 font-medium">
+                        {lang === 'lo'
+                          ? 'ຍອດລວມໃບບິນປະຈຳວັນ (₭ LAK)'
+                          : 'Daily Bill Total (₭ LAK)'}
+                      </p>
+                      <p className="text-base font-extrabold text-blue-900 font-mono mt-0.5">
+                        {dailyReportTotals.grossSalesLak.toLocaleString('en-US')}{' '}
+                        ₭
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-white border border-emerald-200">
+                      <p className="text-[11px] text-emerald-800 font-medium">
+                        {lang === 'lo'
+                          ? 'ຄອມມິດຊັ່ນ L1–L4 ຈາກບິນປະຈຳວັນ'
+                          : 'Daily L1–L4 Commission'}
+                      </p>
+                      <p className="text-base font-extrabold text-emerald-700 font-mono mt-0.5">
+                        {dailyReportTotals.totalCommLak.toLocaleString('en-US')}{' '}
+                        ₭
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-white border border-amber-300">
+                      <p className="text-[11px] text-[#8B6528] font-medium">
+                        {lang === 'lo'
+                          ? 'ພ້ອມພິມທີ່ຢູ່ສົ່ງສະມາຊິກ'
+                          : 'Ready Billing Address Slips'}
+                      </p>
+                      <p className="text-base font-extrabold text-[#2E1A0F] font-mono mt-0.5">
+                        {
+                          dailyFilteredOrders.filter(
+                            (o) => o.status !== 'cancelled'
+                          ).length
+                        }{' '}
+                        {lang === 'lo' ? 'ໃບຈັດສົ່ງ' : 'Labels'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Daily User Member Order Bills Table with Inline Editable Billing Address & Direct Print */}
+                <div className="overflow-x-auto">
+                  {dailyFilteredOrders.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-zinc-500">
+                      {lang === 'lo'
+                        ? 'ບໍ່ພົບໃບບິນສັ່ງຊື້ໃນເງື່ອນໄຂທີ່ເລືອກ — ລອງກົດ "ທຸກວັນທີ" ຫຼື ລ້າງຊ່ອງຄົ້ນຫາ.'
+                        : 'No daily order bills match your filter. Try selecting "All Dates" or clearing your search.'}
+                    </div>
+                  ) : (
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-[#2E1A0F]/5 border-b border-[#C89D54]/40 text-[#2E1A0F] font-bold">
+                          <th className="py-2.5 px-3"># / {lang === 'lo' ? 'ວັນທີ & ບິນ' : 'Date & Bill'}</th>
+                          <th className="py-2.5 px-3">
+                            {lang === 'lo'
+                              ? 'ສະມາຊິກຜູ້ສັ່ງຊື້ (User Member)'
+                              : 'User Member / Recipient'}
+                          </th>
+                          <th className="py-2.5 px-3">
+                            {lang === 'lo'
+                              ? 'ສິນຄ້າ & ຍອດເງິນ (₭)'
+                              : 'Product, Qty & Total'}
+                          </th>
+                          <th className="py-2.5 px-3 min-w-[230px]">
+                            {lang === 'lo'
+                              ? '📍 ທີ່ຢູ່ຈັດສົ່ງ & ເບີໂທສົ່ງສະມາຊິກ (ແກ້ໄຂໄດ້)'
+                              : '📍 Billing & Delivery Address + Phone (Editable)'}
+                          </th>
+                          <th className="py-2.5 px-3">
+                            {lang === 'lo' ? 'ຂົນສົ່ງ & Waybill' : 'Carrier & Waybill'}
+                          </th>
+                          <th className="py-2.5 px-3 text-right">
+                            {lang === 'lo'
+                              ? '🖨️ ພິມທີ່ຢູ່ / ພິມບິນ'
+                              : '🖨️ Print Address / Bill'}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-200">
+                        {dailyFilteredOrders.map((ord, idx) => {
+                          const ship = extractOrderShippingInfo(ord);
+                          const ordDate = getOrderDateString(ord);
+                          const refMember = distributors.find(
+                            (d) =>
+                              d.id === ord.referringDistributorId ||
+                              d.fullName === ord.customerName ||
+                              d.code === ord.customerName
+                          );
+                          return (
+                            <tr key={ord.id} className="hover:bg-[#FAF6F0]/80 align-top">
+                              <td className="py-3 px-3 whitespace-nowrap">
+                                <div className="text-[10px] font-mono text-zinc-500">
+                                  #{idx + 1} · {ordDate}
+                                </div>
+                                <div className="font-mono font-bold text-[#2E1A0F] mt-0.5">
+                                  {ord.orderNumber}
+                                </div>
+                                <span
+                                  className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                    ord.status === 'fulfilled'
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : ord.status === 'cancelled'
+                                      ? 'bg-red-100 text-red-700'
+                                      : 'bg-amber-100 text-amber-800'
+                                  }`}
+                                >
+                                  {localizeStatus(ord.status, lang, t)}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3">
+                                <div className="font-bold text-zinc-900">
+                                  {localizePersonName(ord.customerName, lang)}
+                                </div>
+                                <div className="text-[11px] text-zinc-600 mt-0.5">
+                                  <span
+                                    className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold mr-1 ${
+                                      ord.orderType === 'member'
+                                        ? 'bg-[#2E1A0F] text-[#F5DF98]'
+                                        : 'bg-stone-200 text-zinc-800'
+                                    }`}
+                                  >
+                                    {localizeOrderType(ord.orderType, lang)}
+                                  </span>
+                                  {refMember ? `(${refMember.code})` : ''}
+                                </div>
+                                <div className="text-[10px] text-zinc-500 mt-0.5">
+                                  L1: {localizePersonName(ord.referringDistributorName, lang)}
+                                </div>
+                              </td>
+                              <td className="py-3 px-3">
+                                <div className="font-semibold text-zinc-800">
+                                  <span className="font-mono font-bold text-[#2E1A0F]">
+                                    {ord.quantity}x
+                                  </span>{' '}
+                                  {localizeProductNameByRaw(
+                                    ord.productName,
+                                    ord.productId,
+                                    lang
+                                  )}
+                                </div>
+                                <div className="mt-1 font-mono font-bold text-blue-900">
+                                  {money(ord.totalAmount)}
+                                </div>
+                              </td>
+                              <td className="py-3 px-3 space-y-1.5">
+                                <input
+                                  type="text"
+                                  maxLength={
+                                    VALIDATION_CONSTRAINTS.ORDER
+                                      .BILLING_ADDRESS_MAX
+                                  }
+                                  value={ship.billingAddress}
+                                  onChange={(e) =>
+                                    handleInlineEditOrderBillExcelField(
+                                      ord.id,
+                                      'billingAddress',
+                                      e.target.value
+                                    )
+                                  }
+                                  aria-label="Member billing address"
+                                  className="w-full px-2 py-1 text-xs font-medium bg-[#FFFDF7] border border-[#C89D54] rounded-md text-[#2E1A0F]"
+                                />
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] text-zinc-500 shrink-0">
+                                    📞
+                                  </span>
+                                  <input
+                                    type="text"
+                                    maxLength={
+                                      VALIDATION_CONSTRAINTS.ORDER
+                                        .SHIPPING_PHONE_MAX
+                                    }
+                                    value={ship.phone}
+                                    onChange={(e) =>
+                                      handleInlineEditOrderBillExcelField(
+                                        ord.id,
+                                        'shippingPhone',
+                                        e.target.value
+                                      )
+                                    }
+                                    aria-label="Member recipient phone"
+                                    className="w-full px-2 py-0.5 text-[11px] font-mono bg-white border border-zinc-300 rounded text-zinc-800"
+                                  />
+                                </div>
+                              </td>
+                              <td className="py-3 px-3 whitespace-nowrap">
+                                <div className="font-semibold text-[#2E1A0F]">
+                                  {ship.provider}
+                                </div>
+                                <div className="text-[11px] font-mono text-blue-800">
+                                  {ship.trackingNo}
+                                </div>
+                                <div className="text-[10px] text-zinc-500 max-w-[160px] truncate">
+                                  {ship.branch}
+                                </div>
+                              </td>
+                              <td className="py-3 px-3 text-right whitespace-nowrap">
+                                <div className="inline-flex flex-col sm:flex-row items-end sm:items-center justify-end gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handlePrintSingleBillingAddress(ord, 'a4')
+                                    }
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-[#2E1A0F] bg-gradient-to-r from-[#F5DF98] via-[#E5C158] to-[#C89D54] hover:from-[#FFF0B8] hover:to-[#D4AF37] rounded-lg shadow-xs cursor-pointer"
+                                  >
+                                    <Truck className="w-3.5 h-3.5" />
+                                    <span>
+                                      {lang === 'lo'
+                                        ? 'ພິມທີ່ຢູ່ສົ່ງສະມາຊິກ'
+                                        : 'Print Billing Address'}
+                                    </span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleOpenBillPrintPreview(
+                                        ord,
+                                        'a4',
+                                        true
+                                      )
+                                    }
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-[#F5DF98] bg-[#2E1A0F] hover:bg-[#3D2314] rounded-lg cursor-pointer"
+                                  >
+                                    <Printer className="w-3.5 h-3.5 text-[#E5C158]" />
+                                    <span>
+                                      {lang === 'lo' ? 'ພິມບິນ' : 'Print Bill'}
+                                    </span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </section>
+            )}
+
             {/* SUB-PANEL 2: MASTER ORDER & FULFILLMENT CONTROL */}
             {(adminSubPanel === 'overview' || adminSubPanel === 'orders') && (
               <section className="bg-white border border-zinc-200 rounded-xl p-6 space-y-4">
@@ -24355,6 +25346,18 @@ export default function App() {
                             </td>
                             <td className="py-3 pl-3 text-right">
                               <div className="inline-flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handlePrintSingleBillingAddress(ord, 'a4')
+                                  }
+                                  className="inline-flex items-center gap-1 px-2 py-1 text-xs font-bold text-[#2E1A0F] bg-[#FAF6F0] border border-[#C89D54] hover:bg-[#E5C158] rounded-md whitespace-nowrap shrink-0 cursor-pointer"
+                                >
+                                  <Truck className="w-3 h-3 text-[#8B6528]" />
+                                  <span>
+                                    {lang === 'lo' ? 'ພິມທີ່ຢູ່' : 'Address'}
+                                  </span>
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -27179,6 +28182,53 @@ export default function App() {
                                 ))}
                               </select>
                             )}
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[11px] font-medium text-zinc-700 mb-1">
+                                {lang === 'lo'
+                                  ? 'ເບີໂທຜູ້ຮັບ (Recipient Phone)'
+                                  : 'Recipient Phone'}
+                              </label>
+                              <input
+                                type="text"
+                                maxLength={
+                                  VALIDATION_CONSTRAINTS.ORDER
+                                    .SHIPPING_PHONE_MAX
+                                }
+                                value={shippingRecipientPhone}
+                                onChange={(e) =>
+                                  setShippingRecipientPhone(e.target.value)
+                                }
+                                placeholder="020 5588 9911"
+                                className="w-full px-2.5 py-1.5 text-xs font-mono bg-white border border-stone-300 rounded-lg"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-medium text-zinc-700 mb-1">
+                                {lang === 'lo'
+                                  ? 'ທີ່ຢູ່ຈັດສົ່ງ / ໃບບິນ (Billing Address)'
+                                  : 'Billing & Delivery Address'}
+                              </label>
+                              <input
+                                type="text"
+                                maxLength={
+                                  VALIDATION_CONSTRAINTS.ORDER
+                                    .BILLING_ADDRESS_MAX
+                                }
+                                value={shippingBillingAddress}
+                                onChange={(e) =>
+                                  setShippingBillingAddress(e.target.value)
+                                }
+                                placeholder={
+                                  lang === 'lo'
+                                    ? 'ບ້ານ, ເມືອງ, ແຂວງ'
+                                    : 'Village, District, Province'
+                                }
+                                className="w-full px-2.5 py-1.5 text-xs bg-white border border-stone-300 rounded-lg"
+                              />
+                            </div>
+                          </div>
                         </div>
                       );
                     })()}
@@ -30149,6 +31199,15 @@ export default function App() {
                   <p className="text-sm font-bold text-[#2E1A0F]">
                     {printShip.provider}
                   </p>
+                  <p className="text-xs text-zinc-900 bg-white border border-dashed border-[#C89D54] rounded-md px-2.5 py-1.5">
+                    <span className="font-bold text-[#8B6528]">
+                      📍{' '}
+                      {lang === 'lo'
+                        ? 'ທີ່ຢູ່ຈັດສົ່ງ / ໃບບິນ:'
+                        : 'Billing / Delivery Address:'}
+                    </span>{' '}
+                    {printShip.billingAddress}
+                  </p>
                   <p className="text-xs text-zinc-700">
                     {lang === 'lo' ? 'ສາຂາປາຍທາງ' : 'Branch'}:{' '}
                     <strong>{printShip.branch}</strong> · Tel:{' '}
@@ -30400,6 +31459,23 @@ export default function App() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handlePrintSingleBillingAddress(
+                          printTarget,
+                          printBillPaperSize
+                        )
+                      }
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-[#2E1A0F] bg-[#FAF6F0] border border-[#C89D54] hover:bg-[#E5C158] rounded-lg shadow-xs cursor-pointer"
+                    >
+                      <Truck className="w-3.5 h-3.5 text-[#8B6528]" />
+                      <span>
+                        {lang === 'lo'
+                          ? 'ພິມທີ່ຢູ່ຈັດສົ່ງ (Address)'
+                          : 'Print Address'}
+                      </span>
+                    </button>
                     <button
                       type="button"
                       onClick={() =>

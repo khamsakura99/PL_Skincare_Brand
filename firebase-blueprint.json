@@ -433,6 +433,36 @@
           "description": "Bank QR payment slip reference or transaction ID.",
           "maxLength": 100
         },
+        "orderDate": {
+          "type": "string",
+          "description": "Order date (YYYY-MM-DD) for daily billing reports.",
+          "maxLength": 32
+        },
+        "shippingProvider": {
+          "type": "string",
+          "description": "Logistics carrier name (e.g. Anousith Logistics, HAL Logistics).",
+          "maxLength": 80
+        },
+        "shippingBranch": {
+          "type": "string",
+          "description": "Destination logistics branch name.",
+          "maxLength": 120
+        },
+        "shippingPhone": {
+          "type": "string",
+          "description": "Recipient phone number for parcel delivery.",
+          "maxLength": 40
+        },
+        "shippingTrackingNo": {
+          "type": "string",
+          "description": "Courier waybill or tracking number.",
+          "maxLength": 60
+        },
+        "billingAddress": {
+          "type": "string",
+          "description": "Full member billing and parcel delivery address.",
+          "maxLength": 300
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
